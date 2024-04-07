@@ -132,6 +132,7 @@ bool handleArgs(int argc, char** argv,
                bool &silent,
                bool &bigBaseUnit,
                char* &offMeshInputPath,
+               char*& obstaclesInputPath,
                char* &file,
                unsigned int& threads)
 {
@@ -293,6 +294,13 @@ bool handleArgs(int argc, char** argv,
         {
             allowDebug = true;
         }
+        else if (strcmp(argv[i], "--obstaclesInput") == 0)
+        {
+            param = argv[++i];
+            if (!param)
+                return false;
+            obstaclesInputPath = param;
+        }
         else if (!strcmp(argv[i], "--help") || !strcmp(argv[i], "-?"))
         {
             printf("%s\n", Readme);
@@ -410,13 +418,14 @@ int main(int argc, char** argv)
          debugOutput = false,
          silent = false,
          bigBaseUnit = false;
-    char* offMeshInputPath = nullptr;
+    char offMeshInputPath[] = "offmesh.txt";
+    char obstaclesInputPath[] = "obstacles.txt";
     char* file = nullptr;
 
     bool validParam = handleArgs(argc, argv, mapnum,
-                                 tileX, tileY, maxAngle, maxAngleNotSteep,
-                                 skipLiquid, skipContinents, skipJunkMaps, skipBattlegrounds,
-                                 debugOutput, silent, bigBaseUnit, offMeshInputPath, file, threads);
+        tileX, tileY, maxAngle, maxAngleNotSteep,
+        skipLiquid, skipContinents, skipJunkMaps, skipBattlegrounds,
+        debugOutput, silent, bigBaseUnit, (char*&)offMeshInputPath, (char*&)obstaclesInputPath, file, threads);
 
     if (!validParam)
         return silent ? -1 : finish("You have specified invalid parameters", -1);
@@ -442,8 +451,7 @@ int main(int argc, char** argv)
     _mapDataForVmapInitialization = LoadMap(dbcLocales[0], silent, -4);
 
     MapBuilder builder(maxAngle, maxAngleNotSteep, skipLiquid, skipContinents, skipJunkMaps,
-                       skipBattlegrounds, debugOutput, bigBaseUnit, mapnum, offMeshInputPath, threads);
-
+                       skipBattlegrounds, debugOutput, bigBaseUnit, mapnum, offMeshInputPath, obstaclesInputPath, threads);
     uint32 start = getMSTime();
     if (file)
         builder.buildMeshFromFile(file);

@@ -91,7 +91,7 @@ enum Extract : uint8
     EXTRACT_CAMERA  = 0x4,
     EXTRACT_GT      = 0x8,
 
-    EXTRACT_ALL = EXTRACT_MAP | EXTRACT_DBC | EXTRACT_CAMERA | EXTRACT_GT
+    EXTRACT_ALL = EXTRACT_MAP | EXTRACT_DBC /*| EXTRACT_CAMERA | EXTRACT_GT*/
 };
 
 // Select data for extract
@@ -99,7 +99,7 @@ int   CONF_extract = EXTRACT_ALL;
 
 // This option allow limit minimum height to some value (Allow save some memory)
 bool  CONF_allow_height_limit = true;
-float CONF_use_minHeight = -2000.0f;
+float CONF_use_minHeight = -10000.0f;
 
 // This option allow use float to int conversion
 bool  CONF_allow_float_to_int   = true;
