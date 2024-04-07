@@ -47,12 +47,12 @@ namespace MMAP
     static const int V9_SIZE_SQ = V9_SIZE*V9_SIZE;
     static const int V8_SIZE = 128;
     static const int V8_SIZE_SQ = V8_SIZE*V8_SIZE;
-    static const float GRID_SIZE = 533.3333f;
-    static const float GRID_PART_SIZE = GRID_SIZE/V8_SIZE;
+    static const float GRID_SIZE = 1600.0f / 3;
+    static const float GRID_PART_SIZE = GRID_SIZE / V8_SIZE;
 
     // see contrib/extractor/system.cpp, CONF_use_minHeight
-    static const float INVALID_MAP_LIQ_HEIGHT = -2000.f;
-    static const float INVALID_MAP_LIQ_HEIGHT_MAX = 5000.0f;
+    static const float INVALID_MAP_LIQ_HEIGHT = -10000.f;
+    static const float INVALID_MAP_LIQ_HEIGHT_MAX = 10000.0f;
 
     // see following files:
     // contrib/extractor/system.cpp
@@ -97,6 +97,7 @@ namespace MMAP
             void loadMap(uint32 mapID, uint32 tileX, uint32 tileY, MeshData &meshData);
             bool loadVMap(uint32 mapID, uint32 tileX, uint32 tileY, MeshData &meshData);
             void loadOffMeshConnections(uint32 mapID, uint32 tileX, uint32 tileY, MeshData& meshData, std::vector<OffMeshData> const& offMeshConnections);
+            void loadObstacles(uint32 mapID, uint32 tileX, uint32 tileY, MeshData& meshData, const char* obstacleFilePath);
 
             bool usesLiquids() const { return !m_skipLiquid; }
 

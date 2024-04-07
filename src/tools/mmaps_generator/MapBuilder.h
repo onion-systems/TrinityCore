@@ -82,7 +82,7 @@ namespace MMAP
 
             // All are in UNIT metrics!
             VERTEX_PER_MAP = int(GRID_SIZE / BASE_UNIT_DIM + 0.5f);
-            VERTEX_PER_TILE = bigBaseUnit ? 40 : 80; // must divide VERTEX_PER_MAP
+            VERTEX_PER_TILE = 200; // must divide VERTEX_PER_MAP
             TILES_PER_MAP = VERTEX_PER_MAP / VERTEX_PER_TILE;
         }
 
@@ -156,6 +156,7 @@ namespace MMAP
                 bool bigBaseUnit,
                 int mapid,
                 char const* offMeshFilePath,
+                char const* obstaclesInputPath,
                 unsigned int threads);
 
             ~MapBuilder();
@@ -201,6 +202,7 @@ namespace MMAP
             bool m_debugOutput;
 
             std::vector<OffMeshData> m_offMeshConnections;
+            char const* m_obstaclesFilePath;
             unsigned int m_threads;
             bool m_skipContinents;
             bool m_skipJunkMaps;

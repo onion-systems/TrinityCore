@@ -58,22 +58,23 @@ namespace MMAP
 
     MapBuilder::MapBuilder(Optional<float> maxWalkableAngle, Optional<float> maxWalkableAngleNotSteep, bool skipLiquid,
         bool skipContinents, bool skipJunkMaps, bool skipBattlegrounds,
-        bool debugOutput, bool bigBaseUnit, int mapid, char const* offMeshFilePath, unsigned int threads) :
-        m_terrainBuilder     (nullptr),
-        m_debugOutput        (debugOutput),
-        m_threads            (threads),
-        m_skipContinents     (skipContinents),
-        m_skipJunkMaps       (skipJunkMaps),
-        m_skipBattlegrounds  (skipBattlegrounds),
-        m_skipLiquid         (skipLiquid),
-        m_maxWalkableAngle   (maxWalkableAngle),
-        m_maxWalkableAngleNotSteep (maxWalkableAngleNotSteep),
-        m_bigBaseUnit        (bigBaseUnit),
-        m_mapid              (mapid),
-        m_totalTiles         (0u),
+        bool debugOutput, bool bigBaseUnit, int mapid, char const* offMeshFilePath, char const* obstaclesFilePath, unsigned int threads) :
+        m_terrainBuilder(nullptr),
+        m_debugOutput(debugOutput),
+        m_obstaclesFilePath(obstaclesFilePath),
+        m_threads(threads),
+        m_skipContinents(skipContinents),
+        m_skipJunkMaps(skipJunkMaps),
+        m_skipBattlegrounds(skipBattlegrounds),
+        m_skipLiquid(skipLiquid),
+        m_maxWalkableAngle(maxWalkableAngle),
+        m_maxWalkableAngleNotSteep(maxWalkableAngleNotSteep),
+        m_bigBaseUnit(bigBaseUnit),
+        m_mapid(mapid),
+        m_totalTiles(0u),
         m_totalTilesProcessed(0u),
-        m_rcContext          (nullptr),
-        _cancelationToken    (false)
+        m_rcContext(nullptr),
+        _cancelationToken(false)
     {
         m_terrainBuilder = new TerrainBuilder(skipLiquid);
 
@@ -541,6 +542,7 @@ namespace MMAP
         m_mapBuilder->getTileBounds(tileX, tileY, allVerts.getCArray(), allVerts.size() / 3, bmin, bmax);
 
         m_terrainBuilder->loadOffMeshConnections(mapID, tileX, tileY, meshData, m_mapBuilder->m_offMeshConnections);
+        m_terrainBuilder->loadObstacles(mapID, tileX, tileY, meshData, m_mapBuilder->m_obstaclesFilePath);
 
         // build navmesh tile
         buildMoveMapTile(mapID, tileX, tileY, meshData, bmin, bmax, navMesh);
@@ -1102,16 +1104,16 @@ namespace MMAP
         config.walkableSlopeAngle = m_maxWalkableAngle ? *m_maxWalkableAngle : 55;
         config.walkableSlopeAngleNotSteep = m_maxWalkableAngleNotSteep ? *m_maxWalkableAngleNotSteep : 55;
         config.tileSize = tileConfig.VERTEX_PER_TILE;
-        config.walkableRadius = m_bigBaseUnit ? 1 : 2;
+        config.walkableRadius = 0;
         config.borderSize = config.walkableRadius + 3;
         config.maxEdgeLen = tileConfig.VERTEX_PER_TILE + 1;        // anything bigger than tileSize
-        config.walkableHeight = m_bigBaseUnit ? 3 : 6;
+        config.walkableHeight = 7;
         // a value >= 3|6 allows npcs to walk over some fences
         // a value >= 4|8 allows npcs to walk over all fences
-        config.walkableClimb = m_bigBaseUnit ? 3 : 6;
+        config.walkableClimb = 4;
         config.minRegionArea = rcSqr(60);
         config.mergeRegionArea = rcSqr(50);
-        config.maxSimplificationError = 1.8f;           // eliminates most jagged edges (tiny polygons)
+        config.maxSimplificationError = 2.0f;           // eliminates most jagged edges (tiny polygons)
         config.detailSampleDist = config.cs * 16;
         config.detailSampleMaxError = config.ch * 1;
 
