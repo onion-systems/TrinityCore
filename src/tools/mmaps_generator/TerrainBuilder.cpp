@@ -453,7 +453,7 @@ namespace MMAP
                         useTerrain = false;
 
                     //liquid under the terrain?
-                    if (minTLevel > maxLLevel)
+                    if (minTLevel - maxLLevel > 1.0f)
                         useLiquid = false;
                 }
 
@@ -855,5 +855,112 @@ namespace MMAP
             meshData.offMeshConnectionsAreas.append(offMeshConnection.AreaId);
             meshData.offMeshConnectionsFlags.append(offMeshConnection.Flags);
         }
+    }
+
+    void TerrainBuilder::loadObstacles(uint32 mapID, uint32 tileX, uint32 tileY, MeshData& meshData, const char* obstacleFilePath)
+    {
+        // Open the obstacle file.
+        if (!obstacleFilePath)
+        {
+            return;
+        }
+        FILE* fp = fopen(obstacleFilePath, "rb");
+        if (!fp)
+        {
+            printf("loadObstacles: input file %s not found!\n", obstacleFilePath);
+            return;
+        }
+
+        // pretty silly thing, as we parse entire file and load only the tile we need
+        // but we don't expect this file to be too large
+        char* buf = new char[1024];
+        while (fgets(buf, 1024, fp))
+        {
+            // Parse the arguments.
+            int mid, tx, ty;
+            float h;
+            char vertices_string[512];
+            std::vector<G3D::Vector3> bottom_vertices;
+            if (sscanf(buf, "%d %d,%d %f %[^\t\n]", &mid, &tx, &ty, &h, vertices_string) != 5)
+            {
+                continue;
+            }
+            if (mapID != mid || tileX != tx || tileY != ty)
+            {
+                continue;
+            }
+            std::vector<std::string> vertices_string_segments;
+            char* vertices_string_segment = strtok(vertices_string, " ");
+            while (vertices_string_segment)
+            {
+                float x, y, z;
+                if (sscanf(vertices_string_segment, "%f,%f,%f", &x, &y, &z) != 3)
+                {
+                    continue;
+                }
+                bottom_vertices.push_back({ x, y, z });
+                vertices_string_segment = strtok(nullptr, " ");
+            }
+            if (bottom_vertices.size() < 3)
+            {
+                continue;
+            }
+
+            // Generate the top vertices.
+            std::vector<G3D::Vector3> top_vertices;
+            for (G3D::Vector3 bottom_vertex : bottom_vertices)
+            {
+                top_vertices.push_back({ bottom_vertex.x, bottom_vertex.y, bottom_vertex.z + h });
+            }
+
+            // Push the vertices.
+            size_t base_bottom_vertex_index = meshData.solidVerts.size() / 3;
+            for (const G3D::Vector3 bottom_vertex : bottom_vertices)
+            {
+                meshData.solidVerts.append(bottom_vertex[1]);
+                meshData.solidVerts.append(bottom_vertex[2]);
+                meshData.solidVerts.append(bottom_vertex[0]);
+            }
+            size_t base_top_vertex_index = meshData.solidVerts.size() / 3;
+            for (const G3D::Vector3 top_vertex : top_vertices)
+            {
+                meshData.solidVerts.append(top_vertex[1]);
+                meshData.solidVerts.append(top_vertex[2]);
+                meshData.solidVerts.append(top_vertex[0]);
+            }
+
+            // Push the bottom & top face triangles.
+            for (size_t i = 1; i < bottom_vertices.size() - 1; i++)
+            {
+                meshData.solidTris.append(base_bottom_vertex_index);
+                meshData.solidTris.append(base_bottom_vertex_index + i);
+                meshData.solidTris.append(base_bottom_vertex_index + i + 1);
+            }
+            for (size_t i = 1; i < top_vertices.size() - 1; i++)
+            {
+                meshData.solidTris.append(base_top_vertex_index);
+                meshData.solidTris.append(base_top_vertex_index + i);
+                meshData.solidTris.append(base_top_vertex_index + i + 1);
+            }
+
+            // Push the side face triangles.
+            for (size_t i = 0; i < bottom_vertices.size(); i++)
+            {
+                size_t bottom_vertex_1_index = base_bottom_vertex_index + i;
+                size_t bottom_vertex_2_index = i < bottom_vertices.size() - 1 ? base_bottom_vertex_index + i + 1 : base_bottom_vertex_index;
+                size_t top_vertex_1_index = base_top_vertex_index + i;
+                size_t top_vertex_2_index = i < bottom_vertices.size() - 1 ? base_top_vertex_index + i + 1 : base_top_vertex_index;
+                meshData.solidTris.append(bottom_vertex_1_index);
+                meshData.solidTris.append(bottom_vertex_2_index);
+                meshData.solidTris.append(top_vertex_1_index);
+                meshData.solidTris.append(top_vertex_1_index);
+                meshData.solidTris.append(top_vertex_2_index);
+                meshData.solidTris.append(bottom_vertex_2_index);
+            }
+        }
+
+        // finish
+        delete[] buf;
+        fclose(fp);
     }
 }
