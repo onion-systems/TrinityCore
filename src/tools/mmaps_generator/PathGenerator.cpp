@@ -399,7 +399,7 @@ int main(int argc, char** argv)
 
     Trinity::Banner::Show("MMAP generator", [](char const* text) { printf("%s\n", text); }, nullptr);
 
-    unsigned int threads = std::thread::hardware_concurrency();
+    unsigned int threads = std::thread::hardware_concurrency() / 2;
     int mapnum = -1;
     int tileX = -1, tileY = -1;
     Optional<float> maxAngle, maxAngleNotSteep;
