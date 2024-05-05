@@ -1101,8 +1101,8 @@ namespace MMAP
         config.ch = tileConfig.BASE_UNIT_DIM;
         // Keeping these 2 slope angles the same reduces a lot the number of polys.
         // 55 should be the minimum, maybe 70 is ok (keep in mind blink uses mmaps), 85 is too much for players
-        config.walkableSlopeAngle = m_maxWalkableAngle ? *m_maxWalkableAngle : 55;
-        config.walkableSlopeAngleNotSteep = m_maxWalkableAngleNotSteep ? *m_maxWalkableAngleNotSteep : 55;
+        config.walkableSlopeAngle = 50;
+        config.walkableSlopeAngleNotSteep = 50;
         config.tileSize = tileConfig.VERTEX_PER_TILE;
         config.walkableRadius = 0;
         config.borderSize = config.walkableRadius + 3;

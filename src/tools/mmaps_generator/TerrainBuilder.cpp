@@ -886,7 +886,7 @@ namespace MMAP
             {
                 continue;
             }
-            if (mapID != mid || tileX != tx || tileY != ty)
+            if (mapID != (uint32)mid || tileX != (uint32)tx || tileY != (uint32)ty)
             {
                 continue;
             }
