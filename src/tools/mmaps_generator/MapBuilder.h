@@ -78,11 +78,11 @@ namespace MMAP
             // these are WORLD UNIT based metrics
             // this are basic unit dimentions
             // value have to divide GRID_SIZE(533.3333f) ( aka: 0.5333, 0.2666, 0.3333, 0.1333, etc )
-            BASE_UNIT_DIM = bigBaseUnit ? 0.5333333f : 0.2666666f;
+            BASE_UNIT_DIM = bigBaseUnit ? GRID_SIZE / 1000 : GRID_SIZE / 2000;
 
             // All are in UNIT metrics!
             VERTEX_PER_MAP = int(GRID_SIZE / BASE_UNIT_DIM + 0.5f);
-            VERTEX_PER_TILE = 200; // must divide VERTEX_PER_MAP
+            VERTEX_PER_TILE = 50; // must divide VERTEX_PER_MAP
             TILES_PER_MAP = VERTEX_PER_MAP / VERTEX_PER_TILE;
         }
 

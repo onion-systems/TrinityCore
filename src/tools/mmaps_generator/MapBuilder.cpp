@@ -856,9 +856,9 @@ namespace MMAP
         params.offMeshConAreas = meshData.offMeshConnectionsAreas.getCArray();
         params.offMeshConFlags = meshData.offMeshConnectionsFlags.getCArray();
 
-        params.walkableHeight = BASE_UNIT_DIM*config.walkableHeight;    // agent height
-        params.walkableRadius = BASE_UNIT_DIM*config.walkableRadius;    // agent radius
-        params.walkableClimb = BASE_UNIT_DIM*config.walkableClimb;      // keep less that walkableHeight (aka agent height)!
+        params.walkableHeight = BASE_UNIT_DIM * config.walkableHeight;    // agent height
+        params.walkableRadius = BASE_UNIT_DIM * config.walkableRadius;    // agent radius
+        params.walkableClimb = BASE_UNIT_DIM * config.walkableClimb;      // keep less that walkableHeight (aka agent height)!
         params.tileX = (((bmin[0] + bmax[0]) / 2) - navMesh->getParams()->orig[0]) / GRID_SIZE;
         params.tileY = (((bmin[2] + bmax[2]) / 2) - navMesh->getParams()->orig[2]) / GRID_SIZE;
         rcVcopy(params.bmin, bmin);
@@ -1098,7 +1098,7 @@ namespace MMAP
 
         config.maxVertsPerPoly = DT_VERTS_PER_POLYGON;
         config.cs = tileConfig.BASE_UNIT_DIM;
-        config.ch = tileConfig.BASE_UNIT_DIM;
+        config.ch = 0.25f;
         // Keeping these 2 slope angles the same reduces a lot the number of polys.
         // 55 should be the minimum, maybe 70 is ok (keep in mind blink uses mmaps), 85 is too much for players
         config.walkableSlopeAngle = 50;
@@ -1106,16 +1106,16 @@ namespace MMAP
         config.tileSize = tileConfig.VERTEX_PER_TILE;
         config.walkableRadius = 0;
         config.borderSize = config.walkableRadius + 3;
-        config.maxEdgeLen = tileConfig.VERTEX_PER_TILE + 1;        // anything bigger than tileSize
-        config.walkableHeight = 7;
+        config.maxEdgeLen = tileConfig.VERTEX_PER_TILE + 1;
+        config.walkableHeight = 6;
         // a value >= 3|6 allows npcs to walk over some fences
         // a value >= 4|8 allows npcs to walk over all fences
         config.walkableClimb = 4;
-        config.minRegionArea = rcSqr(60);
-        config.mergeRegionArea = rcSqr(50);
-        config.maxSimplificationError = 2.0f;           // eliminates most jagged edges (tiny polygons)
-        config.detailSampleDist = config.cs * 16;
-        config.detailSampleMaxError = config.ch * 1;
+        config.minRegionArea = 1600;
+        config.mergeRegionArea = 400;
+        config.maxSimplificationError = 1.5f;           // eliminates most jagged edges (tiny polygons)
+        config.detailSampleDist = 3.0f;
+        config.detailSampleMaxError = config.ch;
 
         switch (mapID)
         {
