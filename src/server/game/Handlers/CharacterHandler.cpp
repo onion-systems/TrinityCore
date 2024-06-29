@@ -19,7 +19,6 @@
 #include "AccountMgr.h"
 #include "ArenaTeam.h"
 #include "ArenaTeamMgr.h"
-#include "ArtifactPackets.h"
 #include "AuctionHousePackets.h"
 #include "AuthenticationPackets.h"
 #include "Battleground.h"
@@ -43,6 +42,7 @@
 #include "GuildMgr.h"
 #include "Item.h"
 #include "Language.h"
+#include "LFGMgr.h"
 #include "Log.h"
 #include "Map.h"
 #include "Metric.h"
@@ -157,10 +157,6 @@ bool LoginQueryHolder::Initialize()
     stmt->setUInt64(0, lowGuid);
     res &= SetPreparedQuery(PLAYER_LOGIN_QUERY_LOAD_INVENTORY, stmt);
 
-    stmt = CharacterDatabase.GetPreparedStatement(CHAR_SEL_ITEM_INSTANCE_ARTIFACT);
-    stmt->setUInt64(0, lowGuid);
-    res &= SetPreparedQuery(PLAYER_LOGIN_QUERY_LOAD_ARTIFACTS, stmt);
-
     stmt = CharacterDatabase.GetPreparedStatement(CHAR_SEL_CHAR_VOID_STORAGE);
     stmt->setUInt64(0, lowGuid);
     res &= SetPreparedQuery(PLAYER_LOGIN_QUERY_LOAD_VOID_STORAGE, stmt);
@@ -172,10 +168,6 @@ bool LoginQueryHolder::Initialize()
     stmt = CharacterDatabase.GetPreparedStatement(CHAR_SEL_MAILITEMS);
     stmt->setUInt64(0, lowGuid);
     res &= SetPreparedQuery(PLAYER_LOGIN_QUERY_LOAD_MAIL_ITEMS, stmt);
-
-    stmt = CharacterDatabase.GetPreparedStatement(CHAR_SEL_MAILITEMS_ARTIFACT);
-    stmt->setUInt64(0, lowGuid);
-    res &= SetPreparedQuery(PLAYER_LOGIN_QUERY_LOAD_MAIL_ITEMS_ARTIFACT, stmt);
 
     stmt = CharacterDatabase.GetPreparedStatement(CHAR_SEL_CHARACTER_SOCIALLIST);
     stmt->setUInt64(0, lowGuid);
@@ -239,10 +231,6 @@ bool LoginQueryHolder::Initialize()
     stmt = CharacterDatabase.GetPreparedStatement(CHAR_SEL_CHARACTER_TALENTS);
     stmt->setUInt64(0, lowGuid);
     res &= SetPreparedQuery(PLAYER_LOGIN_QUERY_LOAD_TALENTS, stmt);
-
-    stmt = CharacterDatabase.GetPreparedStatement(CHAR_SEL_CHARACTER_PVP_TALENTS);
-    stmt->setUInt64(0, lowGuid);
-    res &= SetPreparedQuery(PLAYER_LOGIN_QUERY_LOAD_PVP_TALENTS, stmt);
 
     stmt = CharacterDatabase.GetPreparedStatement(CHAR_SEL_PLAYER_ACCOUNT_DATA);
     stmt->setUInt64(0, lowGuid);
@@ -1433,6 +1421,10 @@ void WorldSession::SendFeatureSystemStatus()
     features.EuropaTicketSystemStatus->ThrottleState.LastResetTimeBeforeNow = 111111;
     features.TutorialsEnabled = true;
     features.NPETutorialsEnabled = true;
+
+    features.AddonChatThrottle.MaxTries = 10;
+    features.AddonChatThrottle.TriesRestoredPerSecond = 1;
+    features.AddonChatThrottle.UsedTriesPerMessage = 1;
     /// END OF DUMMY VALUES
 
     features.EuropaTicketSystemStatus->TicketsEnabled = sWorld->getBoolConfig(CONFIG_SUPPORT_TICKETS_ENABLED);
@@ -1445,6 +1437,11 @@ void WorldSession::SendFeatureSystemStatus()
     features.IsMuted = !CanSpeak();
 
     features.TextToSpeechFeatureEnabled = false;
+
+    features.IsLFDEnabled = sLFGMgr->isOptionEnabled(lfg::LFG_OPTION_ENABLE_DUNGEON_FINDER);
+    features.IsLFREnabled = sLFGMgr->isOptionEnabled(lfg::LFG_OPTION_ENABLE_RAID_FINDER);
+    features.IsPremadeGroupEnabled = sLFGMgr->isOptionEnabled(lfg::LFG_OPTION_ENABLE_PREMADE_GROUP);
+    features.IsGroupFinderEnabled = features.IsLFDEnabled || features.IsLFREnabled || features.IsPremadeGroupEnabled;
 
     SendPacket(features.Write());
 }
@@ -1941,7 +1938,7 @@ void WorldSession::HandleEquipmentSetSave(WorldPackets::EquipmentSet::SaveEquipm
     }
     else
     {
-        auto validateIllusion = [this](uint32 enchantId) -> bool
+        auto validateIllusion = [](uint32 enchantId) -> bool
         {
             SpellItemEnchantmentEntry const* illusion = sSpellItemEnchantmentStore.LookupEntry(enchantId);
             if (!illusion)
@@ -1982,7 +1979,7 @@ void WorldSession::HandleUseEquipmentSet(WorldPackets::EquipmentSet::UseEquipmen
             continue;
 
         // Only equip weapons in combat
-        if (_player->IsInCombat() && i != EQUIPMENT_SLOT_MAINHAND && i != EQUIPMENT_SLOT_OFFHAND)
+        if (_player->IsInCombat() && i != EQUIPMENT_SLOT_MAINHAND && i != EQUIPMENT_SLOT_OFFHAND && i != EQUIPMENT_SLOT_RANGED)
             continue;
 
         Item* item = _player->GetItemByGuid(useEquipmentSet.Items[i].Item);

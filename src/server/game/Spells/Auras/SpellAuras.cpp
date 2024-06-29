@@ -1908,10 +1908,12 @@ uint32 Aura::GetProcEffectMask(AuraApplication* aurApp, ProcEventInfo& eventInfo
 
                 if (DamageInfo const* damageInfo = eventInfo.GetDamageInfo())
                 {
-                    if (damageInfo->GetAttackType() != OFF_ATTACK)
+                    if (damageInfo->GetAttackType() == BASE_ATTACK)
                         item = target->ToPlayer()->GetUseableItemByPos(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_MAINHAND);
-                    else
+                    else if (damageInfo->GetAttackType() == OFF_ATTACK)
                         item = target->ToPlayer()->GetUseableItemByPos(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_OFFHAND);
+                    else
+                        item = target->ToPlayer()->GetUseableItemByPos(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_RANGED);
                 }
             }
             else if (GetSpellInfo()->EquippedItemClass == ITEM_CLASS_ARMOR)
@@ -2068,6 +2070,18 @@ void Aura::CallScriptAfterDispel(DispelInfo* dispelInfo)
         script->_PrepareScriptCall(AURA_SCRIPT_HOOK_AFTER_DISPEL);
         for (AuraScript::AuraDispelHandler const& afterDispel : script->AfterDispel)
             afterDispel.Call(script, dispelInfo);
+
+        script->_FinishScriptCall();
+    }
+}
+
+void Aura::CallScriptOnHeartbeat()
+{
+    for (AuraScript* script : m_loadedScripts)
+    {
+        script->_PrepareScriptCall(AURA_SCRIPT_HOOK_ON_HEARTBEAT);
+        for (AuraScript::AuraHeartbeatHandler const& onHeartbeat : script->OnHeartbeat)
+            onHeartbeat.Call(script);
 
         script->_FinishScriptCall();
     }
@@ -2517,6 +2531,13 @@ void UnitAura::FillTargetMap(std::unordered_map<Unit*, uint32>& targets, Unit* c
             targets.emplace(target, targetPair.second);
     }
 
+    // skip area update if owner is not in world!
+    if (!GetUnitOwner()->IsInWorld())
+        return;
+
+    if (GetUnitOwner()->HasAuraState(AURA_STATE_BANISHED, GetSpellInfo(), caster))
+        return;
+
     for (SpellEffectInfo const& spellEffectInfo : GetSpellInfo()->GetEffects())
     {
         if (!HasEffect(spellEffectInfo.EffectIndex))
@@ -2524,13 +2545,6 @@ void UnitAura::FillTargetMap(std::unordered_map<Unit*, uint32>& targets, Unit* c
 
         // area auras only
         if (spellEffectInfo.IsEffect(SPELL_EFFECT_APPLY_AURA))
-            continue;
-
-        // skip area update if owner is not in world!
-        if (!GetUnitOwner()->IsInWorld())
-            continue;
-
-        if (GetUnitOwner()->HasUnitState(UNIT_STATE_ISOLATED))
             continue;
 
         std::vector<WorldObject*> units;
@@ -2619,6 +2633,31 @@ void UnitAura::AddStaticApplication(Unit* target, uint32 effMask)
         return;
 
     _staticApplications[target->GetGUID()] |= effMask;
+}
+
+void UnitAura::Heartbeat()
+{
+    Aura::Heartbeat();
+
+    // Periodic food and drink emote animation
+    HandlePeriodicFoodSpellVisualKit();
+
+    // Invoke the OnHeartbeat AuraScript hook
+    CallScriptOnHeartbeat();
+}
+
+void UnitAura::HandlePeriodicFoodSpellVisualKit()
+{
+    SpellSpecificType specificType = GetSpellInfo()->GetSpellSpecific();
+
+    bool food = specificType == SPELL_SPECIFIC_FOOD || specificType == SPELL_SPECIFIC_FOOD_AND_DRINK;
+    bool drink = specificType == SPELL_SPECIFIC_DRINK || specificType == SPELL_SPECIFIC_FOOD_AND_DRINK;
+
+    if (food)
+        GetUnitOwner()->SendPlaySpellVisualKit(SPELL_VISUAL_KIT_FOOD, 0, 0);
+
+    if (drink)
+        GetUnitOwner()->SendPlaySpellVisualKit(SPELL_VISUAL_KIT_DRINK, 0, 0);
 }
 
 DynObjAura::DynObjAura(AuraCreateInfo const& createInfo)

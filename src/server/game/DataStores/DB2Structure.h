@@ -52,50 +52,6 @@ struct Achievement_CategoryEntry
     int8 UiOrder;
 };
 
-struct AdventureJournalEntry
-{
-    uint32 ID;
-    LocalizedString Name;
-    LocalizedString Description;
-    LocalizedString ButtonText;
-    LocalizedString RewardDescription;
-    LocalizedString ContinueDescription;
-    uint8 Type;
-    uint32 PlayerConditionID;
-    int32 Flags;
-    uint8 ButtonActionType;
-    int32 TextureFileDataID;
-    uint16 LfgDungeonID;
-    uint32 QuestID;
-    uint16 BattleMasterListID;
-    uint8 PriorityMin;
-    uint8 PriorityMax;
-    int32 ItemID;
-    uint32 ItemQuantity;
-    uint16 CurrencyType;
-    uint8 CurrencyQuantity;
-    uint16 UiMapID;
-    std::array<uint32, 2> BonusPlayerConditionID;
-    std::array<uint8, 2> BonusValue;
-};
-
-struct AdventureMapPOIEntry
-{
-    uint32 ID;
-    LocalizedString Title;
-    LocalizedString Description;
-    DBCPosition2D WorldPosition;
-    int8 Type;
-    uint32 PlayerConditionID;
-    uint32 QuestID;
-    uint32 LfgDungeonID;
-    int32 RewardItemID;
-    uint32 UiTextureAtlasMemberID;
-    uint32 UiTextureKitID;
-    int32 MapID;
-    uint32 AreaTableID;
-};
-
 struct AnimationDataEntry
 {
     uint32 ID;
@@ -176,6 +132,16 @@ struct AreaTriggerEntry
     int16 ShapeID;
     int16 AreaTriggerActionSetID;
     int8 Flags;
+
+    AreaTriggerShapeType GetShapeType() const { return static_cast<AreaTriggerShapeType>(ShapeType); }
+};
+
+struct AreaTriggerActionSetEntry
+{
+    uint32 ID;
+    int16 Flags;
+
+    EnumFlag<AreaTriggerActionSetFlag> GetFlags() const { return static_cast<AreaTriggerActionSetFlag>(Flags); }
 };
 
 struct ArmorLocationEntry
@@ -188,120 +154,6 @@ struct ArmorLocationEntry
     float Modifier;
 };
 
-struct ArtifactEntry
-{
-    LocalizedString Name;
-    uint32 ID;
-    uint16 UiTextureKitID;
-    int32 UiNameColor;
-    int32 UiBarOverlayColor;
-    int32 UiBarBackgroundColor;
-    uint16 ChrSpecializationID;
-    uint8 Flags;
-    uint8 ArtifactCategoryID;
-    uint32 UiModelSceneID;
-    uint32 SpellVisualKitID;
-};
-
-struct ArtifactAppearanceEntry
-{
-    LocalizedString Name;
-    uint32 ID;
-    uint16 ArtifactAppearanceSetID;
-    uint8 DisplayIndex;
-    uint32 UnlockPlayerConditionID;
-    uint8 ItemAppearanceModifierID;
-    int32 UiSwatchColor;
-    float UiModelSaturation;
-    float UiModelOpacity;
-    uint8 OverrideShapeshiftFormID;
-    uint32 OverrideShapeshiftDisplayID;
-    uint32 UiItemAppearanceID;
-    uint32 UiAltItemAppearanceID;
-    uint8 Flags;
-    uint16 UiCameraID;
-};
-
-struct ArtifactAppearanceSetEntry
-{
-    LocalizedString Name;
-    LocalizedString Description;
-    uint32 ID;
-    uint8 DisplayIndex;
-    uint16 UiCameraID;
-    uint16 AltHandUICameraID;
-    int8 ForgeAttachmentOverride;
-    uint8 Flags;
-    uint32 ArtifactID;
-};
-
-struct ArtifactCategoryEntry
-{
-    uint32 ID;
-    int16 XpMultCurrencyID;
-    int16 XpMultCurveID;
-};
-
-struct ArtifactPowerEntry
-{
-    DBCPosition2D DisplayPos;
-    uint32 ID;
-    uint8 ArtifactID;
-    uint8 MaxPurchasableRank;
-    int32 Label;
-    uint8 Flags;
-    uint8 Tier;
-};
-
-struct ArtifactPowerLinkEntry
-{
-    uint32 ID;
-    uint16 PowerA;
-    uint16 PowerB;
-};
-
-struct ArtifactPowerPickerEntry
-{
-    uint32 ID;
-    uint32 PlayerConditionID;
-};
-
-struct ArtifactPowerRankEntry
-{
-    uint32 ID;
-    uint8 RankIndex;
-    int32 SpellID;
-    uint16 ItemBonusListID;
-    float AuraPointsOverride;
-    uint32 ArtifactPowerID;
-};
-
-struct ArtifactQuestXPEntry
-{
-    uint32 ID;
-    std::array<uint32, 10> Difficulty;
-};
-
-struct ArtifactTierEntry
-{
-    uint32 ID;
-    uint32 ArtifactTier;
-    uint32 MaxNumTraits;
-    uint32 MaxArtifactKnowledge;
-    uint32 KnowledgePlayerCondition;
-    uint32 MinimumEmpowerKnowledge;
-};
-
-struct ArtifactUnlockEntry
-{
-    uint32 ID;
-    uint32 PowerID;
-    uint8 PowerRank;
-    uint16 ItemBonusListID;
-    uint32 PlayerConditionID;
-    uint32 ArtifactID;
-};
-
 struct AuctionHouseEntry
 {
     uint32 ID;
@@ -309,98 +161,6 @@ struct AuctionHouseEntry
     uint16 FactionID;                                               // id of faction.dbc for player factions associated with city
     uint8 DepositRate;
     uint8 ConsignmentRate;
-};
-
-struct AzeriteEmpoweredItemEntry
-{
-    uint32 ID;
-    int32 ItemID;
-    uint32 AzeriteTierUnlockSetID;
-    uint32 AzeritePowerSetID;
-};
-
-struct AzeriteEssenceEntry
-{
-    uint32 ID;
-    LocalizedString Name;
-    LocalizedString Description;
-    int32 SpecSetID;
-};
-
-struct AzeriteEssencePowerEntry
-{
-    uint32 ID;
-    LocalizedString SourceAlliance;
-    LocalizedString SourceHorde;
-    int32 AzeriteEssenceID;
-    uint8 Tier;
-    int32 MajorPowerDescription;
-    int32 MinorPowerDescription;
-    int32 MajorPowerActual;
-    int32 MinorPowerActual;
-};
-
-struct AzeriteItemEntry
-{
-    uint32 ID;
-    int32 ItemID;
-};
-
-struct AzeriteItemMilestonePowerEntry
-{
-    uint32 ID;
-    int32 RequiredLevel;
-    int32 AzeritePowerID;
-    int32 Type;
-    int32 AutoUnlock;
-};
-
-struct AzeriteKnowledgeMultiplierEntry
-{
-    uint32 ID;
-    float Multiplier;
-};
-
-struct AzeriteLevelInfoEntry
-{
-    uint32 ID;
-    uint64 BaseExperienceToNextLevel;
-    uint64 MinimumExperienceToNextLevel;
-    int32 ItemLevel;
-};
-
-struct AzeritePowerEntry
-{
-    uint32 ID;
-    int32 SpellID;
-    int32 ItemBonusListID;
-    int32 SpecSetID;
-    int32 Flags;
-};
-
-struct AzeritePowerSetMemberEntry
-{
-    uint32 ID;
-    uint32 AzeritePowerSetID;
-    int32 AzeritePowerID;
-    int32 Class;
-    uint8 Tier;
-    int32 OrderIndex;
-};
-
-struct AzeriteTierUnlockEntry
-{
-    uint32 ID;
-    uint8 ItemCreationContext;
-    uint8 Tier;
-    uint8 AzeriteLevel;
-    uint32 AzeriteTierUnlockSetID;
-};
-
-struct AzeriteTierUnlockSetEntry
-{
-    uint32 ID;
-    int32 Flags;
 };
 
 struct BankBagSlotPricesEntry
@@ -500,6 +260,8 @@ struct BattlemasterListEntry
     int8 Flags;
     int32 IconFileDataID;
     int32 RequiredPlayerConditionID;
+    int32 Field_4_4_0_54339_016;
+    int32 Field_4_4_0_54339_017;
     std::array<int16, 16> MapID;
 
     EnumFlag<BattlemasterListFlags> GetFlags() const { return static_cast<BattlemasterListFlags>(Flags); }
@@ -681,6 +443,8 @@ struct ChrCustomizationOptionEntry
     uint32 ID;
     uint16 SecondaryID;
     int32 Flags;
+    uint32 ChrRacesID;
+    int32 Sex;
     int32 ChrModelID;
     int32 SortIndex;
     int32 ChrCustomizationCategoryID;
@@ -1277,6 +1041,7 @@ struct CurrencyTypesEntry
     int8 Quality;
     int32 FactionID;
     int32 AwardConditionID;
+    int32 MaxQtyWorldStateID;
     std::array<int32, 2> Flags;
 
     EnumFlag<CurrencyTypesFlags> GetFlags() const { return static_cast<CurrencyTypesFlags>(Flags[0]); }
@@ -1402,8 +1167,10 @@ struct DungeonEncounterEntry
     int16 MapID;
     int32 DifficultyID;
     int32 OrderIndex;
+    int32 CompleteWorldStateID;
     int8 Bit;
     int32 Flags;
+    int32 SpellIconFileID;
     int32 Faction;
 };
 
@@ -1617,207 +1384,6 @@ struct GameObjectsEntry
     std::array<int32, 8> PropValue;
 };
 
-struct GarrAbilityEntry
-{
-    LocalizedString Name;
-    LocalizedString Description;
-    uint32 ID;
-    uint8 GarrAbilityCategoryID;
-    uint8 GarrFollowerTypeID;
-    int32 IconFileDataID;
-    uint16 FactionChangeGarrAbilityID;
-    uint16 Flags;
-};
-
-struct GarrBuildingEntry
-{
-    uint32 ID;
-    LocalizedString HordeName;
-    LocalizedString AllianceName;
-    LocalizedString Description;
-    LocalizedString Tooltip;
-    uint8 GarrTypeID;
-    uint8 BuildingType;
-    int32 HordeGameObjectID;
-    int32 AllianceGameObjectID;
-    uint8 GarrSiteID;
-    uint8 UpgradeLevel;
-    int32 BuildSeconds;
-    uint16 CurrencyTypeID;
-    int32 CurrencyQty;
-    uint16 HordeUiTextureKitID;
-    uint16 AllianceUiTextureKitID;
-    int32 IconFileDataID;
-    uint16 AllianceSceneScriptPackageID;
-    uint16 HordeSceneScriptPackageID;
-    int32 MaxAssignments;
-    uint8 ShipmentCapacity;
-    uint16 GarrAbilityID;
-    uint16 BonusGarrAbilityID;
-    uint16 GoldCost;
-    uint8 Flags;
-};
-
-struct GarrBuildingPlotInstEntry
-{
-    DBCPosition2D MapOffset;
-    uint32 ID;
-    uint8 GarrBuildingID;
-    uint16 GarrSiteLevelPlotInstID;
-    uint16 UiTextureAtlasMemberID;
-};
-
-struct GarrClassSpecEntry
-{
-    LocalizedString ClassSpec;
-    LocalizedString ClassSpecMale;
-    LocalizedString ClassSpecFemale;
-    uint32 ID;
-    uint16 UiTextureAtlasMemberID;
-    uint16 GarrFollItemSetID;
-    uint8 FollowerClassLimit;
-    uint8 Flags;
-};
-
-struct GarrFollowerEntry
-{
-    LocalizedString HordeSourceText;
-    LocalizedString AllianceSourceText;
-    LocalizedString TitleName;
-    uint32 ID;
-    uint8 GarrTypeID;
-    uint8 GarrFollowerTypeID;
-    int32 HordeCreatureID;
-    int32 AllianceCreatureID;
-    uint8 HordeGarrFollRaceID;
-    uint8 AllianceGarrFollRaceID;
-    uint8 HordeGarrClassSpecID;
-    uint8 AllianceGarrClassSpecID;
-    uint8 Quality;
-    uint8 FollowerLevel;
-    uint16 ItemLevelWeapon;
-    uint16 ItemLevelArmor;
-    int8 HordeSourceTypeEnum;
-    int8 AllianceSourceTypeEnum;
-    int32 HordeIconFileDataID;
-    int32 AllianceIconFileDataID;
-    uint16 HordeGarrFollItemSetID;
-    uint16 AllianceGarrFollItemSetID;
-    uint16 HordeUITextureKitID;
-    uint16 AllianceUITextureKitID;
-    uint8 Vitality;
-    uint8 HordeFlavorGarrStringID;
-    uint8 AllianceFlavorGarrStringID;
-    uint32 HordeSlottingBroadcastTextID;
-    uint32 AllySlottingBroadcastTextID;
-    uint8 ChrClassID;
-    uint8 Flags;
-    uint8 Gender;
-};
-
-struct GarrFollowerXAbilityEntry
-{
-    uint32 ID;
-    uint8 OrderIndex;
-    uint8 FactionIndex;
-    uint16 GarrAbilityID;
-    uint32 GarrFollowerID;
-};
-
-struct GarrMissionEntry
-{
-    LocalizedString Name;
-    LocalizedString Location;
-    LocalizedString Description;
-    DBCPosition2D MapPos;
-    DBCPosition2D WorldPos;
-    uint32 ID;
-    uint8 GarrTypeID;
-    uint8 GarrMissionTypeID;
-    uint8 GarrFollowerTypeID;
-    uint8 MaxFollowers;
-    uint32 MissionCost;
-    uint16 MissionCostCurrencyTypesID;
-    uint8 OfferedGarrMissionTextureID;
-    uint16 UiTextureKitID;
-    uint32 EnvGarrMechanicID;
-    uint8 EnvGarrMechanicTypeID;
-    uint32 PlayerConditionID;
-    int8 TargetLevel;
-    uint16 TargetItemLevel;
-    int32 MissionDuration;
-    int32 TravelDuration;
-    uint32 OfferDuration;
-    uint8 BaseCompletionChance;
-    uint32 BaseFollowerXP;
-    uint32 OvermaxRewardPackID;
-    uint8 FollowerDeathChance;
-    uint32 AreaID;
-    uint32 Flags;
-    uint32 GarrMissionSetID;
-};
-
-struct GarrPlotEntry
-{
-    uint32 ID;
-    char const* Name;
-    uint8 PlotType;
-    int32 HordeConstructObjID;
-    int32 AllianceConstructObjID;
-    uint8 Flags;
-    uint8 UiCategoryID;
-    std::array<uint32, 2> UpgradeRequirement;
-};
-
-struct GarrPlotBuildingEntry
-{
-    uint32 ID;
-    uint8 GarrPlotID;
-    uint8 GarrBuildingID;
-};
-
-struct GarrPlotInstanceEntry
-{
-    uint32 ID;
-    char const* Name;
-    uint8 GarrPlotID;
-};
-
-struct GarrSiteLevelEntry
-{
-    uint32 ID;
-    DBCPosition2D TownHallUiPos;
-    uint32 GarrSiteID;
-    uint8 GarrLevel;
-    uint16 MapID;
-    uint16 UpgradeMovieID;
-    uint16 UiTextureKitID;
-    uint8 MaxBuildingLevel;
-    uint16 UpgradeCost;
-    uint16 UpgradeGoldCost;
-};
-
-struct GarrSiteLevelPlotInstEntry
-{
-    uint32 ID;
-    DBCPosition2D UiMarkerPos;
-    uint16 GarrSiteLevelID;
-    uint8 GarrPlotInstanceID;
-    uint8 UiMarkerSize;
-};
-
-struct GarrTalentTreeEntry
-{
-    uint32 ID;
-    LocalizedString Name;
-    int32 GarrTypeID;
-    int32 ClassID;
-    int8 MaxTiers;
-    int8 UiOrder;
-    int8 Flags;
-    uint16 UiTextureKitID;
-};
-
 struct GemPropertiesEntry
 {
     uint32 ID;
@@ -1831,6 +1397,13 @@ struct GlyphBindableSpellEntry
     uint32 ID;
     int32 SpellID;
     uint32 GlyphPropertiesID;
+};
+
+struct GlyphSlotEntry
+{
+    uint32 ID;
+    int32 Tooltip;
+    uint32 Type;
 };
 
 struct GlyphPropertiesEntry
@@ -2044,6 +1617,10 @@ struct ItemBonusTreeNodeEntry
     uint16 ChildItemBonusTreeID;
     uint16 ChildItemBonusListID;
     uint16 ChildItemLevelSelectorID;
+    int32 ChildItemBonusListGroupID;
+    int32 IblGroupPointsModSetID;
+    int32 MinMythicPlusLevel;
+    int32 MaxMythicPlusLevel;
     uint32 ParentItemBonusTreeID;
 };
 
@@ -2205,7 +1782,7 @@ struct ItemModifiedAppearanceEntry
     int32 ItemAppearanceModifierID;
     int32 ItemAppearanceID;
     int32 OrderIndex;
-    int32 TransmogSourceTypeEnum;
+    uint8 TransmogSourceTypeEnum;
 };
 
 struct ItemModifiedAppearanceExtraEntry
@@ -2231,6 +1808,16 @@ struct ItemPriceBaseEntry
     uint16 ItemLevel;
     float Armor;
     float Weapon;
+};
+
+struct ItemReforgeEntry
+{
+    uint32 ID;
+    uint16 SourceStat;
+    float SourceMultiplier;
+    uint16 TargetStat;
+    float TargetMultiplier;
+    uint16 LegacyItemReforgeID;
 };
 
 struct ItemSearchNameEntry
@@ -2329,7 +1916,7 @@ struct ItemSparseEntry
     std::array<uint16, 5> MaxDamage;
     std::array<int16, 7> Resistances;
     uint16 ScalingStatDistributionID;
-    std::array<int16, 10> StatModifierBonusAmount;
+    std::array<int16, MAX_ITEM_PROTO_STATS> StatModifierBonusAmount;
     uint8 ExpansionID;
     uint8 ArtifactID;
     uint8 SpellWeight;
@@ -2414,9 +2001,9 @@ struct JournalEncounterSectionEntry
 
 struct JournalInstanceEntry
 {
+    uint32 ID;
     LocalizedString Name;
     LocalizedString Description;
-    uint32 ID;
     uint16 MapID;
     int32 BackgroundFileDataID;
     int32 ButtonFileDataID;
@@ -2540,6 +2127,13 @@ struct LiquidTypeEntry
     std::array<float, 18> Float;
     std::array<uint32, 4> Int;
     std::array<float, 4> Coefficient;
+};
+
+struct LocationEntry
+{
+    uint32 ID;
+    DBCPosition3D Pos;
+    std::array<float, 3> Rot;
 };
 
 #define MAX_LOCK_CASE 8
@@ -2827,6 +2421,36 @@ struct ParagonReputationEntry
     int32 QuestID;
 };
 
+struct PathEntry
+{
+    uint32 ID;
+    uint8 Type;
+    uint8 SplineType;
+    uint8 Red;
+    uint8 Green;
+    uint8 Blue;
+    uint8 Alpha;
+    uint8 Flags;
+};
+
+struct PathNodeEntry
+{
+    uint32 ID;
+    uint16 PathID;
+    int16 Sequence;
+    int32 LocationID;
+};
+
+struct PathPropertyEntry
+{
+    uint32 ID;
+    uint16 PathID;
+    uint8 PropertyIndex;
+    int32 Value;
+
+    PathPropertyIndex GetPropertyIndex() const { return static_cast<PathPropertyIndex>(PropertyIndex); }
+};
+
 struct PhaseEntry
 {
     uint32 ID;
@@ -2887,7 +2511,7 @@ struct PlayerConditionEntry
     int32 PhaseUseFlags;
     uint16 PhaseID;
     uint32 PhaseGroupID;
-    uint8 Flags;
+    int32 Flags;
     int8 ChrSpecializationIndex;
     int8 ChrSpecializationRole;
     uint32 ModifierTreeID;
@@ -2993,34 +2617,6 @@ struct PvpSeasonEntry
     int32 MilestoneSeason;
     int32 AllianceAchievementID;
     int32 HordeAchievementID;
-};
-
-struct PvpTalentEntry
-{
-    LocalizedString Description;
-    uint32 ID;
-    uint32 SpecID;
-    int32 SpellID;
-    int32 OverridesSpellID;
-    int32 Flags;
-    int32 ActionBarSpellID;
-    int32 PvpTalentCategoryID;
-    int32 LevelRequired;
-};
-
-struct PvpTalentCategoryEntry
-{
-    uint32 ID;
-    uint8 TalentSlotMask;
-};
-
-struct PvpTalentSlotUnlockEntry
-{
-    uint32 ID;
-    int8 Slot;
-    int32 LevelRequired;
-    int32 DeathKnightLevelRequired;
-    int32 DemonHunterLevelRequired;
 };
 
 struct PvpTierEntry
@@ -3262,7 +2858,7 @@ struct SoundKitEntry
     uint32 ID;
     uint8 SoundType;
     float VolumeFloat;
-    uint16 Flags;
+    int32 Flags;
     float MinDistance;
     float DistanceCutoff;
     uint8 EAXDef;
@@ -3831,6 +3427,29 @@ struct TalentEntry
     std::array<int32, 9> SpellRank;
     std::array<int32, 3> PrereqTalent;
     std::array<int32, 3> PrereqRank;
+};
+
+struct TalentTabEntry
+{
+    uint32 ID;
+    LocalizedString Name;
+    char const* BackgroundFile;
+    LocalizedString Description;
+    int32 OrderIndex;
+    int32 RaceMask;
+    int32 ClassMask;
+    int32 CategoryEnumID;
+    int32 SpellIconID;
+    int32 RoleMask;
+    std::array<int32, 2> MasterySpellID;
+};
+
+struct TalentTreePrimarySpellsEntry
+{
+    uint32 ID;
+    int32 TalentTabID;
+    int32 SpellID;
+    int32 Flags;
 };
 
 struct TaxiNodesEntry

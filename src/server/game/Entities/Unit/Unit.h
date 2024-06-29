@@ -34,7 +34,6 @@
 
 #define VISUAL_WAYPOINT 1 // Creature Entry ID used for waypoints show, visible only for GMs
 #define WORLD_TRIGGER 12999
-#define ARTIFACTS_ALL_WEAPONS_GENERAL_WEAPON_EQUIPPED_PASSIVE 197886
 #define SPELL_DH_DOUBLE_JUMP 196055
 #define DISPLAYID_HIDDEN_MOUNT 73200
 
@@ -70,6 +69,7 @@ struct LiquidData;
 struct LiquidTypeEntry;
 struct MountCapabilityEntry;
 struct SpellValue;
+struct TeleportLocation;
 
 class Aura;
 class AuraApplication;
@@ -267,7 +267,7 @@ enum UnitState : uint32
     UNIT_STATE_ROOT                  = 0x00000400,
     UNIT_STATE_CONFUSED              = 0x00000800,
     UNIT_STATE_DISTRACTED            = 0x00001000,
-    UNIT_STATE_ISOLATED              = 0x00002000, // area auras do not affect other players
+    UNIT_STATE_ISOLATED_DEPRECATED   = 0x00002000, // REUSE
     UNIT_STATE_ATTACK_PLAYER         = 0x00004000,
     UNIT_STATE_CASTING               = 0x00008000,
     UNIT_STATE_POSSESSED             = 0x00010000, // being possessed by another unit
@@ -287,7 +287,7 @@ enum UnitState : uint32
 
     UNIT_STATE_ALL_STATE_SUPPORTED = UNIT_STATE_DIED | UNIT_STATE_MELEE_ATTACKING | UNIT_STATE_CHARMED | UNIT_STATE_STUNNED | UNIT_STATE_ROAMING | UNIT_STATE_CHASE
                                    | UNIT_STATE_FOCUSING | UNIT_STATE_FLEEING | UNIT_STATE_IN_FLIGHT | UNIT_STATE_FOLLOW | UNIT_STATE_ROOT | UNIT_STATE_CONFUSED
-                                   | UNIT_STATE_DISTRACTED | UNIT_STATE_ISOLATED | UNIT_STATE_ATTACK_PLAYER | UNIT_STATE_CASTING
+                                   | UNIT_STATE_DISTRACTED | UNIT_STATE_ATTACK_PLAYER | UNIT_STATE_CASTING
                                    | UNIT_STATE_POSSESSED | UNIT_STATE_CHARGING | UNIT_STATE_JUMPING | UNIT_STATE_MOVE | UNIT_STATE_ROTATING
                                    | UNIT_STATE_EVADE | UNIT_STATE_ROAMING_MOVE | UNIT_STATE_CONFUSED_MOVE | UNIT_STATE_FLEEING_MOVE
                                    | UNIT_STATE_CHASE_MOVE | UNIT_STATE_FOLLOW_MOVE | UNIT_STATE_IGNORE_PATHFINDING | UNIT_STATE_FOLLOW_FORMATION_MOVE,
@@ -308,9 +308,9 @@ enum UnitState : uint32
 TC_GAME_API extern float baseMoveSpeed[MAX_MOVE_TYPE];
 TC_GAME_API extern float playerBaseMoveSpeed[MAX_MOVE_TYPE];
 
-enum CombatRating
+enum CombatRating : uint8
 {
-    CR_AMPLIFY                          = 0,
+    CR_UNUSED_0                         = 0,
     CR_DEFENSE_SKILL                    = 1,
     CR_DODGE                            = 2,
     CR_PARRY                            = 3,
@@ -337,7 +337,7 @@ enum CombatRating
     CR_ARMOR_PENETRATION                = 24,
     CR_MASTERY                          = 25,
     CR_PVP_POWER                        = 26,
-    CR_CLEAVE                           = 27,
+    CR_UNUSED_27                        = 27,
     CR_VERSATILITY_DAMAGE_DONE          = 28,
     CR_VERSATILITY_HEALING_DONE         = 29,
     CR_VERSATILITY_DAMAGE_TAKEN         = 30,
@@ -686,6 +686,9 @@ class TC_GAME_API Unit : public WorldObject
 
         virtual void Update(uint32 time) override;
 
+        void Heartbeat() override;
+        void TriggerAuraHeartbeat();
+
         void setAttackTimer(WeaponAttackType type, uint32 time) { m_attackTimer[type] = time; }
         void resetAttackTimer(WeaponAttackType type = BASE_ATTACK);
         uint32 getAttackTimer(WeaponAttackType type) const { return m_attackTimer[type]; }
@@ -746,6 +749,7 @@ class TC_GAME_API Unit : public WorldObject
 
         int32 GetContentTuning() const { return m_unitData->ContentTuningID; }
         uint8 GetLevel() const { return uint8(m_unitData->Level); }
+        uint8 GetEffectiveLevel() const { return uint8(*m_unitData->EffectiveLevel ? *m_unitData->EffectiveLevel : *m_unitData->Level); }
         uint8 GetLevelForTarget(WorldObject const* /*target*/) const override { return GetLevel(); }
         void SetLevel(uint8 lvl, bool sendUpdate = true);
         uint8 GetRace() const { return m_unitData->Race; }
@@ -793,7 +797,8 @@ class TC_GAME_API Unit : public WorldObject
         virtual float GetArmorMultiplierForTarget(WorldObject const* /*target*/) const { return 1.0f; }
 
         Powers GetPowerType() const { return Powers(*m_unitData->DisplayPower); }
-        void SetPowerType(Powers power, bool sendUpdate = true);
+        void SetPowerType(Powers power, bool sendUpdate = true, bool onInit = false);
+        void SetInitialPowerValue(Powers powerType);
         void SetOverrideDisplayPowerId(uint32 powerDisplayId) { SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::OverrideDisplayPowerID), powerDisplayId); }
         Powers CalculateDisplayPowerType() const;
         void UpdateDisplayPower();
@@ -1102,7 +1107,7 @@ class TC_GAME_API Unit : public WorldObject
 
         void NearTeleportTo(Position const& pos, bool casting = false);
         void NearTeleportTo(float x, float y, float z, float orientation, bool casting = false) { NearTeleportTo(Position(x, y, z, orientation), casting); }
-        void SendTeleportPacket(Position const& pos);
+        void SendTeleportPacket(TeleportLocation const& teleportLocation);
         virtual bool UpdatePosition(float x, float y, float z, float ang, bool teleport = false);
         // returns true if unit's position really changed
         virtual bool UpdatePosition(Position const& pos, bool teleport = false);
@@ -1112,7 +1117,6 @@ class TC_GAME_API Unit : public WorldObject
         void SendMoveKnockBack(Player* player, float speedXY, float speedZ, float vcos, float vsin);
         void KnockbackFrom(Position const& origin, float speedXY, float speedZ, Movement::SpellEffectExtraData const* spellEffectExtraData = nullptr);
         void JumpTo(float speedXY, float speedZ, float angle, Optional<Position> dest = {});
-        void JumpTo(WorldObject* obj, float speedZ, bool withOrientation = false);
 
         void MonsterMoveWithSpeed(float x, float y, float z, float speed, bool generatePath = false, bool forceDestination = false);
 
@@ -1611,8 +1615,10 @@ class TC_GAME_API Unit : public WorldObject
         EnumFlag<SpellOtherImmunity> GetSpellOtherImmunityMask() const;
 
         bool IsImmunedToDamage(SpellSchoolMask meleeSchoolMask) const;
-        bool IsImmunedToDamage(SpellInfo const* spellInfo, SpellEffectInfo const* spellEffectInfo = nullptr) const;
+        bool IsImmunedToDamage(WorldObject const* caster, SpellInfo const* spellInfo, SpellEffectInfo const* spellEffectInfo = nullptr) const;
         virtual bool IsImmunedToSpellEffect(SpellInfo const* spellInfo, SpellEffectInfo const& spellEffectInfo, WorldObject const* caster, bool requireImmunityPurgesEffectAttribute = false) const;
+
+        bool IsImmunedToAuraPeriodicTick(WorldObject const* caster, SpellInfo const* spellInfo, SpellEffectInfo const* spellEffectInfo = nullptr) const;
 
         static bool IsDamageReducedByArmor(SpellSchoolMask damageSchoolMask, SpellInfo const* spellInfo = nullptr);
         static uint32 CalcArmorReducedDamage(Unit const* attacker, Unit* victim, uint32 damage, SpellInfo const* spellInfo, WeaponAttackType attackType = MAX_ATTACK, uint8 attackerLevel = 0);
@@ -1919,6 +1925,7 @@ class TC_GAME_API Unit : public WorldObject
 
         void UpdateSplineMovement(uint32 t_diff);
         void UpdateSplinePosition();
+        void SendFlightSplineSyncUpdate();
         void InterruptMovementBasedAuras();
 
         // player or player's pet
@@ -1938,7 +1945,6 @@ class TC_GAME_API Unit : public WorldObject
     private:
 
         uint32 m_state;                                     // Even derived shouldn't modify
-        TimeTracker m_splineSyncTimer;
 
         Diminishing m_Diminishing;
 

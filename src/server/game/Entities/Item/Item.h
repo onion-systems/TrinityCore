@@ -71,7 +71,7 @@ struct BonusData
     int32 ItemLevelBonus;
     int32 RequiredLevel;
     int32 ItemStatType[MAX_ITEM_PROTO_STATS];
-    int32 StatPercentEditor[MAX_ITEM_PROTO_STATS];
+    int32 ItemStatAmount[MAX_ITEM_PROTO_STATS];
     float ItemStatSocketCostMultiplier[MAX_ITEM_PROTO_STATS];
     uint32 SocketColor[MAX_ITEM_PROTO_SOCKETS];
     ItemBondingType Bonding;
@@ -85,7 +85,6 @@ struct BonusData
     uint16 GemRelicRankBonus[MAX_ITEM_PROTO_SOCKETS];
     int32 RelicType;
     int32 RequiredLevelOverride;
-    int32 AzeriteTierUnlockSetId;
     uint32 Suffix;
     int32 RequiredLevelCurve;
     std::array<ItemEffectEntry const*, 13> Effects;
@@ -109,28 +108,6 @@ private:
         int32 RequiredLevelCurvePriority;
         bool HasQualityBonus;
     } _state;
-};
-
-struct ArtifactPowerData
-{
-    uint32 ArtifactPowerId = 0;
-    uint8 PurchasedRank = 0;
-    uint8 CurrentRankWithBonus = 0;
-};
-
-struct ArtifactData
-{
-    uint64 Xp = 0;
-    uint32 ArtifactAppearanceId = 0;
-    uint32 ArtifactTierId = 0;
-    std::vector<ArtifactPowerData> ArtifactPowers;
-};
-
-struct ItemAdditionalLoadInfo
-{
-    static void Init(std::unordered_map<ObjectGuid::LowType, ItemAdditionalLoadInfo>* loadInfo, PreparedQueryResult artifactResult);
-
-    Optional<ArtifactData> Artifact;
 };
 
 struct ItemDynamicFieldGems
@@ -198,8 +175,6 @@ class TC_GAME_API Item : public Object
         bool IsBoundByEnchant() const;
         virtual void SaveToDB(CharacterDatabaseTransaction trans);
         virtual bool LoadFromDB(ObjectGuid::LowType guid, ObjectGuid ownerGuid, Field* fields, uint32 entry);
-        void LoadArtifactData(Player const* owner, uint64 xp, uint32 artifactAppearanceId, uint32 artifactTier, std::vector<ArtifactPowerData>& powers);  // must be called after LoadFromDB to have gems (relics) initialized
-        void CheckArtifactRelicSlotUnlock(Player const* owner);
 
         void AddBonuses(uint32 bonusListID);
         std::vector<int32> const& GetBonusListIDs() const { return m_itemData->ItemBonusKey->BonusListIDs; }
@@ -281,6 +256,7 @@ class TC_GAME_API Item : public Object
         void SendTimeUpdate(Player* owner);
         void UpdateDuration(Player* owner, uint32 diff);
         void SetCreatePlayedTime(uint32 createPlayedTime) { SetUpdateFieldValue(m_values.ModifyValue(&Item::m_itemData).ModifyValue(&UF::ItemData::CreatePlayedTime), createPlayedTime); }
+        void SetCreateTime(int64 createTime) { SetUpdateFieldValue(m_values.ModifyValue(&Item::m_itemData).ModifyValue(&UF::ItemData::CreateTime), createTime); }
 
         // spell charges (signed but stored as unsigned)
         int32 GetSpellCharges(uint8 index/*0..5*/ = 0) const { return m_itemData->SpellCharges[index]; }
@@ -323,6 +299,7 @@ class TC_GAME_API Item : public Object
         ItemDisenchantLootEntry const* GetDisenchantLoot(Player const* owner) const;
         static ItemDisenchantLootEntry const* GetDisenchantLoot(ItemTemplate const* itemTemplate, uint32 quality, uint32 itemLevel);
         void SetFixedLevel(uint8 level);
+        void SetReforgeId(uint32 itemReforceRecId);
         Trinity::IteratorPair<ItemEffectEntry const* const*> GetEffects() const { return { std::make_pair(&_bonusData.Effects[0], &_bonusData.Effects[0] + _bonusData.EffectCount) }; }
 
         // Item Refund system
@@ -335,9 +312,8 @@ class TC_GAME_API Item : public Object
         uint64 GetPaidMoney() const { return m_paidMoney; }
         uint32 GetPaidExtendedCost() const { return m_paidExtendedCost; }
 
-        void UpdatePlayedTime(Player* owner);
-        uint32 GetPlayedTime();
-        bool IsRefundExpired();
+        uint32 GetPlayedTime() const;
+        bool IsRefundExpired() const;
 
         // Soulbound trade system
         void SetSoulboundTradeable(GuidSet const& allowedLooters);
@@ -395,26 +371,14 @@ class TC_GAME_API Item : public Object
         ObjectGuid GetChildItem() const { return m_childItem; }
         void SetChildItem(ObjectGuid childItem) { m_childItem = childItem; }
 
-        bool IsArtifactDisabled() const;
-
-        UF::ArtifactPower const* GetArtifactPower(uint32 artifactPowerId) const;
-        void AddArtifactPower(ArtifactPowerData const* artifactPower);
-        void SetArtifactPower(uint16 artifactPowerId, uint8 purchasedRank, uint8 currentRankWithBonus);
-
-        void InitArtifactPowers(uint8 artifactId, uint8 artifactTier);
-        uint32 GetTotalUnlockedArtifactPowers() const;
-        uint32 GetTotalPurchasedArtifactPowers() const;
-        void ApplyArtifactPowerEnchantmentBonuses(EnchantmentSlot slot, uint32 enchantId, bool apply, Player* owner);
-        void CopyArtifactDataFromParent(Item* parent);
-
-        void SetArtifactXP(uint64 xp) { SetUpdateFieldValue(m_values.ModifyValue(&Item::m_itemData).ModifyValue(&UF::ItemData::ArtifactXP), xp); }
-        void GiveArtifactXp(uint64 amount, Item* sourceItem, uint32 artifactCategoryId);
-
         ItemContext GetContext() const { return ItemContext(*m_itemData->Context); }
         void SetContext(ItemContext context) { SetUpdateFieldValue(m_values.ModifyValue(&Item::m_itemData).ModifyValue(&UF::ItemData::Context), int32(context)); }
 
         void SetPetitionId(uint32 petitionId) { SetUpdateFieldValue(m_values.ModifyValue(&Item::m_itemData).ModifyValue(&UF::ItemData::Enchantment, 0).ModifyValue(&UF::ItemEnchantment::ID), petitionId); }
         void SetPetitionNumSignatures(uint32 signatures) { SetUpdateFieldValue(m_values.ModifyValue(&Item::m_itemData).ModifyValue(&UF::ItemData::Enchantment, 0).ModifyValue(&UF::ItemEnchantment::Duration), signatures); }
+
+        int32 GetRandomPropertiesId() const { return  m_itemData->RandomPropertiesID; };
+        int32 GetPropertySeed() const { return  m_itemData->PropertySeed; };
 
         std::string GetDebugInfo() const override;
 
@@ -430,14 +394,12 @@ class TC_GAME_API Item : public Object
         ItemUpdateState uState;
         int16 uQueuePos;
         bool mb_in_trade;                                   // true if item is currently in trade-window
-        time_t m_lastPlayedTimeUpdate;
         ObjectGuid m_refundRecipient;
         uint64 m_paidMoney;
         uint32 m_paidExtendedCost;
         GuidSet allowedGUIDs;
         ItemRandomBonusListId m_randomBonusListId;          // store separately to easily find which bonus list is the one randomly given for stat rerolling
         ObjectGuid m_childItem;
-        std::unordered_map<uint32, uint16> m_artifactPowerIdToIndex;
         std::array<uint32, MAX_ITEM_PROTO_SOCKETS> m_gemScalingLevels;
 };
 #endif

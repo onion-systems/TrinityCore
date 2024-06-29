@@ -16,7 +16,6 @@
  */
 
 #include "GameObject.h"
-#include "ArtifactPackets.h"
 #include "Battleground.h"
 #include "BattlegroundPackets.h"
 #include "CellImpl.h"
@@ -61,7 +60,12 @@
 void GameObjectTemplate::InitializeQueryData()
 {
     for (uint8 loc = LOCALE_enUS; loc < TOTAL_LOCALES; ++loc)
+    {
+        if (!sWorld->getBoolConfig(CONFIG_LOAD_LOCALES) && loc != DEFAULT_LOCALE)
+            continue;
+
         QueryData[loc] = BuildQueryData(static_cast<LocaleConstant>(loc));
+    }
 }
 
 WorldPacket GameObjectTemplate::BuildQueryData(LocaleConstant loc) const
@@ -811,7 +815,7 @@ void SetControlZoneValue::Execute(GameObjectTypeBase& type) const
 }
 
 GameObject::GameObject() : WorldObject(false), MapObject(),
-    m_model(nullptr), m_goValue(), m_AI(nullptr), m_respawnCompatibilityMode(false), _animKitId(0), _worldEffectID(0)
+    m_model(nullptr), m_goValue(), m_stringIds(), m_AI(nullptr), m_respawnCompatibilityMode(false), _animKitId(0), _worldEffectID(0)
 {
     m_objectType |= TYPEMASK_GAMEOBJECT;
     m_objectTypeId = TYPEID_GAMEOBJECT;
@@ -1158,7 +1162,7 @@ bool GameObject::Create(uint32 entry, Map* map, Position const& pos, QuaternionD
 
     LastUsedScriptID = GetGOInfo()->ScriptId;
 
-    m_stringIds[0] = goInfo->StringId;
+    m_stringIds[AsUnderlyingType(StringIdType::Template)] = &goInfo->StringId;
 
     AIM_Initialize();
 
@@ -1978,7 +1982,7 @@ bool GameObject::LoadFromDB(ObjectGuid::LowType spawnId, Map* map, bool addToMap
 
     m_goData = data;
 
-    m_stringIds[1] = data->StringId;
+    m_stringIds[AsUnderlyingType(StringIdType::Spawn)] = &data->StringId;
 
     if (addToMap && !GetMap()->AddToMap(this))
         return false;
@@ -2223,6 +2227,20 @@ void GameObject::Respawn()
     }
 }
 
+bool GameObject::HasConditionalInteraction() const
+{
+    if (GetGOInfo()->GetQuestID())
+        return true;
+
+    if (GetGoType() != GAMEOBJECT_TYPE_AURA_GENERATOR && GetGOInfo()->GetConditionID1())
+        return true;
+
+    if (sObjectMgr->IsGameObjectForQuests(GetEntry()))
+        return true;
+
+    return false;
+}
+
 bool GameObject::CanActivateForPlayer(Player const* target) const
 {
     if (!MeetsInteractCondition(target))
@@ -2283,6 +2301,12 @@ bool GameObject::ActivateToQuest(Player const* target) const
         case GAMEOBJECT_TYPE_GOOBER:
         {
             if (target->GetQuestStatus(GetGOInfo()->goober.questID) == QUEST_STATUS_INCOMPLETE)
+                return true;
+            break;
+        }
+        case GAMEOBJECT_TYPE_GATHERING_NODE:
+        {
+            if (LootTemplates_Gameobject.HaveQuestLootForPlayer(GetGOInfo()->gatheringNode.chestLoot, target))
                 return true;
             break;
         }
@@ -3271,44 +3295,6 @@ void GameObject::Use(Unit* user)
             AssaultCapturePoint(player);
             return;
         }
-        case GAMEOBJECT_TYPE_ITEM_FORGE:
-        {
-            GameObjectTemplate const* info = GetGOInfo();
-            if (!info)
-                return;
-
-            if (user->GetTypeId() != TYPEID_PLAYER)
-                return;
-
-            Player* player = user->ToPlayer();
-
-            if (!MeetsInteractCondition(player))
-                return;
-
-            switch (info->itemForge.ForgeType)
-            {
-                case 0: // Artifact Forge
-                case 1: // Relic Forge
-                {
-                    Aura const* artifactAura = player->GetAura(ARTIFACTS_ALL_WEAPONS_GENERAL_WEAPON_EQUIPPED_PASSIVE);
-                    Item const* item = artifactAura ? player->GetItemByGuid(artifactAura->GetCastItemGUID()) : nullptr;
-                    if (!item)
-                    {
-                        player->SendDirectMessage(WorldPackets::Misc::DisplayGameError(GameError::ERR_MUST_EQUIP_ARTIFACT).Write());
-                        return;
-                    }
-
-                    WorldPackets::Artifact::OpenArtifactForge openArtifactForge;
-                    openArtifactForge.ArtifactGUID = item->GetGUID();
-                    openArtifactForge.ForgeGUID = GetGUID();
-                    player->SendDirectMessage(openArtifactForge.Write());
-                    break;
-                }
-                default:
-                    break;
-            }
-            return;
-        }
         case GAMEOBJECT_TYPE_UI_LINK:
         {
             Player* player = user->ToPlayer();
@@ -3483,9 +3469,18 @@ uint32 GameObject::GetScriptId() const
     return GetGOInfo()->ScriptId;
 }
 
+void GameObject::InheritStringIds(GameObject const* parent)
+{
+    // copy references to stringIds from template and spawn
+    m_stringIds = parent->m_stringIds;
+
+    // then copy script stringId, not just its reference
+    SetScriptStringId(std::string(parent->GetStringId(StringIdType::Script)));
+}
+
 bool GameObject::HasStringId(std::string_view id) const
 {
-    return std::find(m_stringIds.begin(), m_stringIds.end(), id) != m_stringIds.end();
+    return std::ranges::any_of(m_stringIds, [id](std::string const* stringId) { return stringId && *stringId == id; });
 }
 
 void GameObject::SetScriptStringId(std::string id)
@@ -3493,12 +3488,12 @@ void GameObject::SetScriptStringId(std::string id)
     if (!id.empty())
     {
         m_scriptStringId.emplace(std::move(id));
-        m_stringIds[2] = *m_scriptStringId;
+        m_stringIds[AsUnderlyingType(StringIdType::Script)] = &*m_scriptStringId;
     }
     else
     {
         m_scriptStringId.reset();
-        m_stringIds[2] = {};
+        m_stringIds[AsUnderlyingType(StringIdType::Script)] = nullptr;
     }
 }
 

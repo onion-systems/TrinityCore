@@ -41,6 +41,7 @@
 #    PACKET SPOOF PROTECTION SETTINGS
 #    METRIC SETTINGS
 #    PVP SETTINGS
+#    LOAD SETTINGS
 #
 ###################################################################################################
 
@@ -1349,8 +1350,9 @@ Command.LookupMaxResults = 0
 #     DungeonFinder.OptionsMask
 #        Description: Dungeon and raid finder system.
 #        Value is a bitmask consisting of:
-#           LFG_OPTION_ENABLE_DUNGEON_FINDER = 1,     Enable the dungeon finder browser
-#           LFG_OPTION_ENABLE_RAID_BROWSER   = 2,     Enable the raid browser
+#           LFG_OPTION_ENABLE_DUNGEON_FINDER = 1,     Enable the dungeon finder
+#           LFG_OPTION_ENABLE_RAID_FINDER    = 2,     Enable the raid finder
+#           LFG_OPTION_ENABLE_PREMADE_GROUP  = 4      Enable the premade groups browser
 #        Default:     1
 
 DungeonFinder.OptionsMask = 1
@@ -4392,7 +4394,6 @@ Metric.OverallStatusInterval = 1
 ###################################################################################################
 # PVP SETTINGS
 #
-#
 #    Pvp.FactionBalance.LevelCheckDiff
 #        Description: The amount of levels below the maximum level that accounts people for faction balance.
 #                     That is, if max level is 60 and this has a value of 5, all players that are level 55 and above (including) will be included in the check
@@ -4422,6 +4423,21 @@ Pvp.FactionBalance.Pct10 = 0.7
 #        Default:     0.8
 
 Pvp.FactionBalance.Pct20 = 0.8
+
+#
+###################################################################################################
+
+###################################################################################################
+# LOAD SETTINGS
+#
+# These settings control content loading
+#
+#    Load.Locales
+#        Description: Toggles the loading of Locales.
+#        Default:     0 - (Disabled)
+#                     1 - (Enabled)
+
+Load.Locales = 1
 
 #
 ###################################################################################################

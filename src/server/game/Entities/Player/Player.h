@@ -38,10 +38,6 @@ struct AccessRequirement;
 struct AchievementEntry;
 struct AreaTableEntry;
 struct AreaTriggerEntry;
-struct ArtifactPowerRankEntry;
-struct AzeriteEssencePowerEntry;
-struct AzeriteItemMilestonePowerEntry;
-struct AzeritePowerEntry;
 struct BarberShopStyleEntry;
 struct BattlegroundTemplate;
 struct CharTitlesEntry;
@@ -50,7 +46,6 @@ struct ChrSpecializationEntry;
 struct CreatureTemplate;
 struct CurrencyTypesEntry;
 struct FactionEntry;
-struct ItemAdditionalLoadInfo;
 struct ItemExtendedCostEntry;
 struct ItemLimitCategoryEntry;
 struct ItemSetEffect;
@@ -58,7 +53,6 @@ struct ItemTemplate;
 struct Loot;
 struct Mail;
 struct MapEntry;
-struct PvpTalentEntry;
 struct QuestPackageItemEntry;
 struct RewardPackEntry;
 struct SkillRaceClassInfoEntry;
@@ -100,8 +94,10 @@ enum class InstanceResetMethod : uint8;
 enum class InstanceResetResult : uint8;
 enum InventoryType : uint8;
 enum ItemClass : uint8;
+enum ItemModType : uint8;
 enum LootError : uint8;
 enum LootType : uint8;
+enum class MovementStopReason : uint8;
 enum PlayerRestState : uint8;
 enum class PlayerCreateMode : int8;
 enum RestTypes : uint8;
@@ -146,9 +142,14 @@ enum PlayerDataFlagConstants
 {
     PLAYER_EXPLORED_ZONES_BITS  = UF::size_of_value_type<decltype(UF::ActivePlayerData::DataFlags)::value_type>() * 8,
 
-    PLAYER_DATA_FLAG_EXPLORED_ZONES_INDEX   = 1,
-    PLAYER_DATA_FLAG_CHARACTER_INDEX        = 2,
-    PLAYER_DATA_FLAG_ACCOUNT_INDEX          = 3,
+    PLAYER_DATA_FLAG_EXPLORED_ZONES_INDEX                   = 1,
+    PLAYER_DATA_FLAG_CHARACTER_DATA_INDEX                   = 2,
+    PLAYER_DATA_FLAG_ACCOUNT_DATA_INDEX                     = 3,
+    PLAYER_DATA_FLAG_CHARACTER_TAXI_NODES_INDEX             = 4,
+    PLAYER_DATA_FLAG_ACCOUNT_TAXI_NODES_INDEX               = 5,
+    PLAYER_DATA_FLAG_ACCOUNT_COMBINED_QUESTS_INDEX          = 6,
+    PLAYER_DATA_FLAG_ACCOUNT_COMBINED_QUEST_REWARDS_INDEX   = 7,
+    PLAYER_DATA_FLAG_CHARACTER_CONTENTPUSH_INDEX            = 8,
 };
 
 enum SpellModType : uint8
@@ -251,6 +252,22 @@ struct SpellModifierByLabel : SpellModifier
 using SpellFlatModifierByLabel = SpellModifierByLabel<UF::SpellFlatModByLabel>;
 using SpellPctModifierByLabel = SpellModifierByLabel<UF::SpellPctModByLabel>;
 
+struct SpellModifierCompare
+{
+    bool operator()(SpellModifier const* left, SpellModifier const* right) const
+    {
+        // first sort by SpellModOp
+        if (left->op != right->op)
+            return left->op < right->op;
+
+        // then by type (flat/pct)
+        if (left->type != right->type)
+            return left->type < right->type;
+
+        return left < right;
+    }
+};
+
 enum PlayerCurrencyState
 {
     PLAYERCURRENCY_UNCHANGED = 0,
@@ -271,9 +288,8 @@ struct PlayerCurrency
 };
 
 typedef std::unordered_map<uint32, PlayerSpellState> PlayerTalentMap;
-typedef std::array<uint32, MAX_PVP_TALENT_SLOTS> PlayerPvpTalentMap;
 typedef std::unordered_map<uint32, PlayerSpell> PlayerSpellMap;
-typedef std::unordered_set<SpellModifier*> SpellModContainer;
+typedef Trinity::Containers::FlatSet<SpellModifier*, SpellModifierCompare> SpellModContainer;
 typedef std::unordered_map<uint32, PlayerCurrency> PlayerCurrenciesMap;
 
 typedef std::unordered_map<uint32 /*instanceId*/, time_t/*releaseTime*/> InstanceTimeMap;
@@ -847,10 +863,8 @@ enum PlayerLoginQueryIndex
     PLAYER_LOGIN_QUERY_LOAD_DAILY_QUEST_STATUS,
     PLAYER_LOGIN_QUERY_LOAD_REPUTATION,
     PLAYER_LOGIN_QUERY_LOAD_INVENTORY,
-    PLAYER_LOGIN_QUERY_LOAD_ARTIFACTS,
     PLAYER_LOGIN_QUERY_LOAD_MAILS,
     PLAYER_LOGIN_QUERY_LOAD_MAIL_ITEMS,
-    PLAYER_LOGIN_QUERY_LOAD_MAIL_ITEMS_ARTIFACT,
     PLAYER_LOGIN_QUERY_LOAD_SOCIAL_LIST,
     PLAYER_LOGIN_QUERY_LOAD_HOME_BIND,
     PLAYER_LOGIN_QUERY_LOAD_SPELL_COOLDOWNS,
@@ -865,7 +879,6 @@ enum PlayerLoginQueryIndex
     PLAYER_LOGIN_QUERY_LOAD_BG_DATA,
     PLAYER_LOGIN_QUERY_LOAD_GLYPHS,
     PLAYER_LOGIN_QUERY_LOAD_TALENTS,
-    PLAYER_LOGIN_QUERY_LOAD_PVP_TALENTS,
     PLAYER_LOGIN_QUERY_LOAD_ACCOUNT_DATA,
     PLAYER_LOGIN_QUERY_LOAD_SKILLS,
     PLAYER_LOGIN_QUERY_LOAD_WEEKLY_QUEST_STATUS,
@@ -975,6 +988,16 @@ enum class DisplayToastMethod : uint8
     CorruptedLoot           = 19
 };
 
+enum class AvgItemLevelCategory : uint32
+{
+    Base                        = 0,
+    EquippedBase                = 1,
+    EquippedEffective           = 2,
+    Pvp                         = 3,
+    PvpWeighted                 = 4,
+    EquippedEffectiveWeighted   = 5
+};
+
 class Player;
 
 /// Holder for Battleground data
@@ -1058,14 +1081,11 @@ enum TalentLearnResult : int32
 
 struct TC_GAME_API SpecializationInfo
 {
-    SpecializationInfo() : PvpTalents(), ResetTalentsCost(0), ResetTalentsTime(0), ActiveGroup(0)
+    SpecializationInfo() : ResetTalentsCost(0), ResetTalentsTime(0), ActiveGroup(0)
     {
-        for (PlayerPvpTalentMap& pvpTalents : PvpTalents)
-            pvpTalents.fill(0);
     }
 
     PlayerTalentMap Talents[MAX_SPECIALIZATIONS];
-    PlayerPvpTalentMap PvpTalents[MAX_SPECIALIZATIONS];
     std::vector<uint32> Glyphs[MAX_SPECIALIZATIONS];
     uint32 ResetTalentsCost;
     time_t ResetTalentsTime;
@@ -1078,7 +1098,6 @@ private:
 
 uint32 constexpr PLAYER_MAX_HONOR_LEVEL = 500;
 uint8 constexpr PLAYER_LEVEL_MIN_HONOR = 10;
-uint32 constexpr SPELL_PVP_RULES_ENABLED = 134735;
 float constexpr MAX_AREA_SPIRIT_HEALER_RANGE = 20.0f;
 
 enum class ZonePVPTypeOverride : uint32
@@ -1088,6 +1107,13 @@ enum class ZonePVPTypeOverride : uint32
     Hostile     = 2,
     Contested   = 3,
     Combat      = 4
+};
+
+struct TeleportLocation
+{
+    WorldLocation Location;
+    Optional<uint32> InstanceId;
+    Optional<ObjectGuid> TransportGuid;
 };
 
 class TC_GAME_API Player final : public Unit, public GridObject<Player>
@@ -1112,6 +1138,7 @@ class TC_GAME_API Player final : public Unit, public GridObject<Player>
 
         bool TeleportTo(uint32 mapid, float x, float y, float z, float orientation, TeleportToOptions options = TELE_TO_NONE, Optional<uint32> instanceId = {});
         bool TeleportTo(WorldLocation const& loc, TeleportToOptions options = TELE_TO_NONE, Optional<uint32> instanceId = {});
+        bool TeleportTo(TeleportLocation const& teleportLocation, TeleportToOptions options = TELE_TO_NONE);
         bool TeleportToBGEntryPoint();
 
         bool HasSummonPending() const;
@@ -1122,9 +1149,11 @@ class TC_GAME_API Player final : public Unit, public GridObject<Player>
 
         void Update(uint32 time) override;
 
+        void Heartbeat() override;
+
         bool IsImmunedToSpellEffect(SpellInfo const* spellInfo, SpellEffectInfo const& spellEffectInfo, WorldObject const* caster, bool requireImmunityPurgesEffectAttribute = false) const override;
 
-        bool IsInAreaTriggerRadius(AreaTriggerEntry const* trigger) const;
+        bool IsInAreaTrigger(AreaTriggerEntry const* areaTrigger) const;
 
         void SendInitialPacketsBeforeAddToMap();
         void SendInitialPacketsAfterAddToMap();
@@ -1150,11 +1179,15 @@ class TC_GAME_API Player final : public Unit, public GridObject<Player>
 
         PlayerTaxi m_taxi;
         void InitTaxiNodesForLevel() { m_taxi.InitTaxiNodesForLevel(GetRace(), GetClass(), GetLevel()); }
-        bool ActivateTaxiPathTo(std::vector<uint32> const& nodes, Creature* npc = nullptr, uint32 spellid = 0, uint32 preferredMountDisplay = 0);
-        bool ActivateTaxiPathTo(uint32 taxi_path_id, uint32 spellid = 0);
+        bool ActivateTaxiPathTo(std::vector<uint32> const& nodes, Creature* npc = nullptr, uint32 spellid = 0, uint32 preferredMountDisplay = 0, Optional<float> speed = {},
+            Optional<Scripting::v2::ActionResultSetter<MovementStopReason>> const& scriptResult = {});
+        bool ActivateTaxiPathTo(uint32 taxi_path_id, uint32 spellid = 0, Optional<float> speed = {},
+            Optional<Scripting::v2::ActionResultSetter<MovementStopReason>> const& scriptResult = {});
         void FinishTaxiFlight();
         void CleanupAfterTaxiFlight();
-        void ContinueTaxiFlight() const;
+        void ContinueTaxiFlight();
+        void StartTaxiMovement(uint32 mountDisplayId, uint32 path, uint32 pathNode, Optional<float> speed,
+            Optional<Scripting::v2::ActionResultSetter<MovementStopReason>>&& scriptResult);
 
         bool IsDeveloper() const { return HasPlayerFlag(PLAYER_FLAGS_DEVELOPER); }
         void SetDeveloper(bool on) { if (on) SetPlayerFlag(PLAYER_FLAGS_DEVELOPER); else RemovePlayerFlag(PLAYER_FLAGS_DEVELOPER); }
@@ -1488,8 +1521,10 @@ class TC_GAME_API Player final : public Unit, public GridObject<Player>
         void RemoveEnchantmentDurationsReferences(Item* item);
         void RemoveArenaEnchantments(EnchantmentSlot slot);
         void AddEnchantmentDuration(Item* item, EnchantmentSlot slot, uint32 duration);
+        void ApplyItemModModifier(ItemModType modifier, int32 amount, bool apply);
         void ApplyEnchantment(Item* item, EnchantmentSlot slot, bool apply, bool apply_dur = true, bool ignore_condition = false);
         void ApplyEnchantment(Item* item, bool apply);
+        void ApplyReforgedStats(Item* item, bool apply);
         void UpdateSkillEnchantments(uint16 skill_id, uint16 curr_value, uint16 new_value);
         void SendEnchantmentDurations();
         void AddItemDurations(Item* item);
@@ -1516,9 +1551,7 @@ class TC_GAME_API Player final : public Unit, public GridObject<Player>
         /*********************************************************/
 
         int32 GetQuestMinLevel(Quest const* quest) const;
-        int32 GetQuestMinLevel(uint32 contentTuningId) const;
         int32 GetQuestLevel(Quest const* quest) const;
-        int32 GetQuestLevel(uint32 contentTuningId) const;
         void PrepareQuestMenu(ObjectGuid guid);
         void SendPreparedQuest(WorldObject* source);
         bool IsActiveQuest(uint32 quest_id) const;
@@ -1823,7 +1856,6 @@ class TC_GAME_API Player final : public Unit, public GridObject<Player>
         ChrSpecializationEntry const* GetPrimarySpecializationEntry() const;
 
         bool ResetTalents(bool noCost = false);
-        void ResetPvpTalents();
         uint32 GetNextResetTalentsCost() const;
         void InitTalentForLevel();
         void SendTalentsInfoData();
@@ -1833,24 +1865,16 @@ class TC_GAME_API Player final : public Unit, public GridObject<Player>
         void RemoveTalent(TalentEntry const* talent);
         void ResetTalentSpecialization();
 
-        TalentLearnResult LearnPvpTalent(uint32 talentID, uint8 slot, int32* spellOnCooldown);
-        bool AddPvpTalent(PvpTalentEntry const* talent, uint8 activeTalentGroup, uint8 slot);
-        void RemovePvpTalent(PvpTalentEntry const* talent, uint8 activeTalentGroup);
-        void TogglePvpTalents(bool enable);
-        bool HasPvpTalent(uint32 talentID, uint8 activeTalentGroup) const;
-        void EnablePvpRules(bool dueToCombat = false);
-        void DisablePvpRules();
-        bool HasPvpRulesEnabled() const;
-        bool IsInAreaThatActivatesPvpTalents() const;
-        bool IsAreaThatActivatesPvpTalents(uint32 areaID) const;
+        void InitGlyphsForLevel();
+        void SetGlyph(uint8 index, uint32 glyphRecId) { SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::Glyphs, index), glyphRecId); }
+        void SetGlyphSlot(uint8 index, uint32 glyphSlotRecId) { SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::GlyphSlots, index), glyphSlotRecId); }
+        void SetGlyphsEnabled(uint32 slotMask) { SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::GlyphsEnabled), slotMask); }
 
         // Dual Spec
         void ActivateTalentGroup(ChrSpecializationEntry const* spec);
 
         PlayerTalentMap const* GetTalentMap(uint8 spec) const { return &_specializationInfo.Talents[spec]; }
         PlayerTalentMap* GetTalentMap(uint8 spec) { return &_specializationInfo.Talents[spec]; }
-        PlayerPvpTalentMap const& GetPvpTalentMap(uint8 spec) const { return _specializationInfo.PvpTalents[spec]; }
-        PlayerPvpTalentMap& GetPvpTalentMap(uint8 spec) { return _specializationInfo.PvpTalents[spec]; }
         std::vector<uint32> const& GetGlyphs(uint8 spec) const { return _specializationInfo.Glyphs[spec]; }
         std::vector<uint32>& GetGlyphs(uint8 spec) { return _specializationInfo.Glyphs[spec]; }
         ActionButtonList const& GetActionButtons() const { return m_actionButtons; }
@@ -2060,7 +2084,7 @@ class TC_GAME_API Player final : public Unit, public GridObject<Player>
         void UpdateExpertise(WeaponAttackType attType);
         void ApplyManaRegenBonus(int32 amount, bool apply);
         void ApplyHealthRegenBonus(int32 amount, bool apply);
-        void UpdateManaRegen();
+        void UpdatePowerRegen(Powers powerType);
         void UpdateAllRunesRegen();
 
         void SetPetSpellPower(uint32 spellPower) { SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::PetSpellPower), spellPower); }
@@ -2190,8 +2214,7 @@ class TC_GAME_API Player final : public Unit, public GridObject<Player>
         void SetSkillTempBonus(uint32 pos, uint16 bonus) { SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::Skill).ModifyValue(&UF::SkillInfo::SkillTempBonus, pos), bonus); }
         void SetSkillPermBonus(uint32 pos, uint16 bonus) { SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::Skill).ModifyValue(&UF::SkillInfo::SkillPermBonus, pos), bonus); }
 
-        WorldLocation& GetTeleportDest() { return m_teleport_dest; }
-        Optional<uint32> GetTeleportDestInstanceId() const { return m_teleport_instanceId; }
+        TeleportLocation& GetTeleportDest() { return m_teleport_dest; }
         uint32 GetTeleportOptions() const { return m_teleport_options; }
         bool IsBeingTeleported() const { return IsBeingTeleportedNear() || IsBeingTeleportedFar(); }
         bool IsBeingTeleportedNear() const { return mSemaphoreTeleport_Near; }
@@ -2201,10 +2224,12 @@ class TC_GAME_API Player final : public Unit, public GridObject<Player>
         void SetSemaphoreTeleportFar(bool semphsetting) { mSemaphoreTeleport_Far = semphsetting; }
         void ProcessDelayedOperations();
 
-        void CheckAreaExploreAndOutdoor(void);
+        void CheckAreaExplore();
         void AddExploredZones(uint32 pos, uint64 mask);
         void RemoveExploredZones(uint32 pos, uint64 mask);
         bool HasExploredZone(uint32 areaId) const;
+
+        void CheckOutdoorsAuraRequirements();
 
         static Team TeamForRace(uint8 race);
         static TeamId TeamIdForRace(uint8 race);
@@ -2328,8 +2353,6 @@ class TC_GAME_API Player final : public Unit, public GridObject<Player>
         void ApplyEquipSpell(SpellInfo const* spellInfo, Item* item, bool apply, bool formChange = false);
         void UpdateEquipSpellsAtFormChange();
         void UpdateItemSetAuras(bool formChange = false);
-        void ApplyArtifactPowers(Item* item, bool apply);
-        void ApplyArtifactPowerRank(Item* artifact, ArtifactPowerRankEntry const* artifactPowerRank, bool apply);
 
         void CastItemCombatSpell(DamageInfo const& damageInfo);
         void CastItemCombatSpell(DamageInfo const& damageInfo, Item* item, ItemTemplate const* proto);
@@ -2460,10 +2483,10 @@ class TC_GAME_API Player final : public Unit, public GridObject<Player>
 
         void SaveRecallPosition()
         {
-            m_recall_location.WorldRelocate(*this);
-            m_recall_instanceId = GetInstanceId();
+            m_recall_location.Location.WorldRelocate(*this);
+            m_recall_location.InstanceId = GetInstanceId();
         }
-        void Recall() { TeleportTo(m_recall_location, TELE_TO_NONE, m_recall_instanceId); }
+        void Recall() { TeleportTo(m_recall_location, TELE_TO_NONE); }
 
         void SetHomebind(WorldLocation const& loc, uint32 areaId);
         void SendBindPointUpdate() const;
@@ -2706,8 +2729,7 @@ class TC_GAME_API Player final : public Unit, public GridObject<Player>
         void RemovePlayerFlagEx(PlayerFlagsEx flags) { RemoveUpdateFieldFlagValue(m_values.ModifyValue(&Player::m_playerData).ModifyValue(&UF::PlayerData::PlayerFlagsEx), flags); }
         void ReplaceAllPlayerFlagsEx(PlayerFlagsEx flags) { SetUpdateFieldValue(m_values.ModifyValue(&Player::m_playerData).ModifyValue(&UF::PlayerData::PlayerFlagsEx), flags); }
 
-        void SetAverageItemLevelTotal(float newItemLevel) { SetUpdateFieldValue(m_values.ModifyValue(&Player::m_playerData).ModifyValue(&UF::PlayerData::AvgItemLevel, 0), newItemLevel); }
-        void SetAverageItemLevelEquipped(float newItemLevel) { SetUpdateFieldValue(m_values.ModifyValue(&Player::m_playerData).ModifyValue(&UF::PlayerData::AvgItemLevel, 1), newItemLevel); }
+        void SetAverageItemLevel(float newItemLevel, AvgItemLevelCategory category) { SetUpdateFieldValue(m_values.ModifyValue(&Player::m_playerData).ModifyValue(&UF::PlayerData::AvgItemLevel, uint32(category)), newItemLevel); }
 
         uint32 GetCustomizationChoice(uint32 chrCustomizationOptionId) const
         {
@@ -2826,7 +2848,6 @@ class TC_GAME_API Player final : public Unit, public GridObject<Player>
         GuidList WhisperList;
         TimePoint m_regenInterruptTimestamp;
         uint32 m_regenTimerCount;
-        uint32 m_foodEmoteTimerCount;
         std::array<float, MAX_POWERS_PER_CLASS> m_powerFraction;
         uint32 m_contestedPvPTimer;
 
@@ -2876,10 +2897,10 @@ class TC_GAME_API Player final : public Unit, public GridObject<Player>
         void _LoadActions(PreparedQueryResult result);
         void _LoadAuras(PreparedQueryResult auraResult, PreparedQueryResult effectResult, uint32 timediff);
         void _LoadGlyphAuras();
-        void _LoadInventory(PreparedQueryResult result, PreparedQueryResult artifactsResult, uint32 timeDiff);
+        void _LoadInventory(PreparedQueryResult result, uint32 timeDiff);
         void _LoadVoidStorage(PreparedQueryResult result);
-        void _LoadMail(PreparedQueryResult mailsResult, PreparedQueryResult mailItemsResult, PreparedQueryResult artifactResult);
-        static Item* _LoadMailedItem(ObjectGuid const& playerGuid, Player* player, uint64 mailId, Mail* mail, Field* fields, ItemAdditionalLoadInfo* addionalData);
+        void _LoadMail(PreparedQueryResult mailsResult, PreparedQueryResult mailItemsResult);
+        static Item* _LoadMailedItem(ObjectGuid const& playerGuid, Player* player, uint64 mailId, Mail* mail, Field* fields);
         void _LoadQuestStatus(PreparedQueryResult result);
         void _LoadQuestStatusObjectives(PreparedQueryResult result);
         void _LoadQuestStatusRewarded(PreparedQueryResult result);
@@ -2900,7 +2921,6 @@ class TC_GAME_API Player final : public Unit, public GridObject<Player>
         void _LoadBGData(PreparedQueryResult result);
         void _LoadGlyphs(PreparedQueryResult result);
         void _LoadTalents(PreparedQueryResult result);
-        void _LoadPvpTalents(PreparedQueryResult result);
         void _LoadTraits(PreparedQueryResult configsResult, PreparedQueryResult entriesResult);
         void _LoadInstanceTimeRestrictions(PreparedQueryResult result);
         void _LoadPetStable(uint32 summonedPetNumber, PreparedQueryResult result);
@@ -3005,7 +3025,7 @@ class TC_GAME_API Player final : public Unit, public GridObject<Player>
         uint32 m_baseHealthRegen;
         int32 m_spellPenetrationItemMod;
 
-        SpellModContainer m_spellMods[MAX_SPELLMOD][SPELLMOD_END];
+        SpellModContainer m_spellMods;
 
         EnchantDurationList m_enchantDuration;
         ItemDurationList m_itemDuration;
@@ -3066,12 +3086,10 @@ class TC_GAME_API Player final : public Unit, public GridObject<Player>
 
         // Player summoning
         time_t m_summon_expire;
-        WorldLocation m_summon_location;
-        uint32 m_summon_instanceId;
+        TeleportLocation m_summon_location;
 
         // Recall position
-        WorldLocation m_recall_location;
-        uint32 m_recall_instanceId;
+        TeleportLocation m_recall_location;
 
         std::unique_ptr<Runes> m_runes;
         EquipmentSetContainer _equipmentSets;
@@ -3084,8 +3102,6 @@ class TC_GAME_API Player final : public Unit, public GridObject<Player>
         uint8 m_fishingSteps;
 
         std::array<std::unique_ptr<CUFProfile>, MAX_CUF_PROFILES> _CUFProfiles;
-
-        TimeTracker m_groupUpdateTimer;
 
     private:
         // internal common parts for CanStore/StoreItem functions
@@ -3122,8 +3138,7 @@ class TC_GAME_API Player final : public Unit, public GridObject<Player>
         uint8 m_MirrorTimerFlagsLast;
 
         // Current teleport data
-        WorldLocation m_teleport_dest;
-        Optional<uint32> m_teleport_instanceId;
+        TeleportLocation m_teleport_dest;
         TeleportToOptions m_teleport_options;
         bool mSemaphoreTeleport_Near;
         bool mSemaphoreTeleport_Far;

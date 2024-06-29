@@ -73,6 +73,8 @@ ByteBuffer& operator<<(ByteBuffer& data, ClientGossipText const& gossipText)
     data << int32(gossipText.QuestID);
     data << int32(gossipText.ContentTuningID);
     data << int32(gossipText.QuestType);
+    data << int32(gossipText.QuestLevel);
+    data << int32(gossipText.QuestMaxScalingLevel);
     data << int32(gossipText.QuestFlags[0]);
     data << int32(gossipText.QuestFlags[1]);
 
@@ -172,6 +174,7 @@ WorldPacket const* TrainerList::Write()
         _worldPacket << uint32(spell.ReqSkillLine);
         _worldPacket << uint32(spell.ReqSkillRank);
         _worldPacket.append(spell.ReqAbility.data(), spell.ReqAbility.size());
+        _worldPacket << uint32(spell.Unk440);
         _worldPacket << uint8(spell.Usable);
         _worldPacket << uint8(spell.ReqLevel);
     }

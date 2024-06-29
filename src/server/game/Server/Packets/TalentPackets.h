@@ -27,23 +27,26 @@ namespace WorldPackets
 {
     namespace Talent
     {
-        struct PvPTalent
+        struct TalentInfo
         {
-            uint16 PvPTalentID = 0;
-            uint8 Slot = 0;
+            uint32 TalentID = 0;
+            uint32 Rank = 0;
         };
 
         struct TalentGroupInfo
         {
-            uint32 SpecID = 0;
-            std::vector<uint16> TalentIDs;
-            std::vector<PvPTalent> PvPTalents;
+            uint8 SpecID = 0;
+            uint32 PrimarySpecialization = 0;
+            std::vector<TalentInfo> Talents;
+            std::vector<uint16> Glyphs;
         };
 
         struct TalentInfoUpdate
         {
+            uint32 UnspentTalentPoints;
             uint8 ActiveGroup = 0;
-            uint32 PrimarySpecialization = 0;
+            bool IsPetTalents = false;
+
             std::vector<TalentGroupInfo> TalentGroups;
         };
 
@@ -64,6 +67,17 @@ namespace WorldPackets
 
             void Read() override;
             Array<uint16, MAX_TALENT_TIERS> Talents;
+        };
+
+        class LearnPreviewTalents final : public ClientPacket
+        {
+        public:
+            LearnPreviewTalents(WorldPacket&& packet) : ClientPacket(CMSG_LEARN_PREVIEW_TALENTS, std::move(packet)) { }
+
+            void Read() override;
+
+            uint32 TalentTab = 0;
+            Array<TalentInfo, 100> Talents;
         };
 
         class RespecWipeConfirm final : public ServerPacket
@@ -118,28 +132,6 @@ namespace WorldPackets
 
             std::vector<GlyphBinding> Glyphs;
             bool IsFullUpdate = false;
-        };
-
-        class LearnPvpTalents final : public ClientPacket
-        {
-        public:
-            LearnPvpTalents(WorldPacket&& packet) : ClientPacket(CMSG_LEARN_PVP_TALENTS, std::move(packet)) { }
-
-            void Read() override;
-
-            Array<PvPTalent, 4> Talents;
-        };
-
-        class LearnPvpTalentFailed final : public ServerPacket
-        {
-        public:
-            LearnPvpTalentFailed() : ServerPacket(SMSG_LEARN_PVP_TALENT_FAILED, 1 + 4 + 4 + (2 + 1) * MAX_PVP_TALENT_SLOTS) { }
-
-            WorldPacket const* Write() override;
-
-            uint32 Reason = 0;
-            int32 SpellID = 0;
-            std::vector<PvPTalent> Talents;
         };
     }
 }

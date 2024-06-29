@@ -87,9 +87,7 @@ enum SpellTargetCheckTypes : uint8
     TARGET_CHECK_RAID,
     TARGET_CHECK_RAID_CLASS,
     TARGET_CHECK_PASSENGER,
-    TARGET_CHECK_SUMMONED,
-    TARGET_CHECK_THREAT,
-    TARGET_CHECK_TAP
+    TARGET_CHECK_SUMMONED
 };
 
 enum SpellTargetDirectionTypes
@@ -233,6 +231,7 @@ public:
     SpellRadiusEntry const* TargetARadiusEntry;
     SpellRadiusEntry const* TargetBRadiusEntry;
     int32     ChainTargets;
+    int32     DieSides;
     uint32    ItemType;
     uint32    TriggerSpell;
     flag128   SpellClassMask;
@@ -263,8 +262,8 @@ public:
     bool IsAreaAuraEffect() const;
     bool IsUnitOwnedAuraEffect() const;
 
-    int32 CalcValue(WorldObject const* caster = nullptr, int32 const* basePoints = nullptr, Unit const* target = nullptr, float* variance = nullptr, uint32 castItemId = 0, int32 itemLevel = -1) const;
-    int32 CalcBaseValue(WorldObject const* caster, Unit const* target, uint32 itemId, int32 itemLevel) const;
+    int32 CalcValue(WorldObject const* caster = nullptr, int32 const* basePoints = nullptr, Unit const* target = nullptr, float* variance = nullptr) const;
+    int32 CalcBaseValue(WorldObject const* caster, Unit const* target) const;
     float CalcValueMultiplier(WorldObject* caster, Spell* spell = nullptr) const;
     float CalcDamageMultiplier(WorldObject* caster, Spell* spell = nullptr) const;
 
@@ -412,6 +411,12 @@ class TC_GAME_API SpellInfo
         // SpellScalingEntry
         struct ScalingInfo
         {
+            int32 CastTimeMin = 0;
+            int32 CastTimeMax = 0;
+            int32 CastTimeMaxLevel = 0;
+            int32 Class = 0;
+            float NerfFactor = 0.0f;
+            int32 NerfMaxLevel = 0;
             uint32 MinScalingLevel = 0;
             uint32 MaxScalingLevel = 0;
             uint32 ScalesFromItemLevel = 0;
@@ -481,6 +486,7 @@ class TC_GAME_API SpellInfo
 
         bool IsPassive() const;
         bool IsAutocastable() const;
+        bool IsAutocastEnabledByDefault() const;
         bool IsStackableWithRanks() const;
         bool IsPassiveStackableWithRanks() const;
         bool IsMultiSlotAura() const;
@@ -554,6 +560,8 @@ class TC_GAME_API SpellInfo
 
         float CalcProcPPM(Unit* caster, int32 itemLevel) const;
 
+        float GetSpellScalingMultiplier(int32 targetLevel, bool isPowerCostRelated /*= false*/) const;
+
         bool IsRanked() const;
         uint8 GetRank() const;
         SpellInfo const* GetFirstRankSpell() const;
@@ -580,6 +588,7 @@ class TC_GAME_API SpellInfo
         // spell immunities
         void ApplyAllSpellImmunitiesTo(Unit* target, SpellEffectInfo const& spellEffectInfo, bool apply) const;
         bool CanSpellProvideImmunityAgainstAura(SpellInfo const* auraSpellInfo) const;
+        bool CanSpellEffectProvideImmunityAgainstAuraEffect(SpellEffectInfo const& immunityEffectInfo, SpellInfo const* auraSpellInfo, SpellEffectInfo const& auraEffectInfo) const;
         bool SpellCancelsAuraEffect(AuraEffect const* aurEff) const;
 
         uint64 GetAllowedMechanicMask() const;

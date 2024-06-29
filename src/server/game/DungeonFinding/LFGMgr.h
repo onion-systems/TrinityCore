@@ -47,7 +47,8 @@ namespace lfg
 enum LfgOptions
 {
     LFG_OPTION_ENABLE_DUNGEON_FINDER             = 0x01,
-    LFG_OPTION_ENABLE_RAID_BROWSER               = 0x02,
+    LFG_OPTION_ENABLE_RAID_FINDER                = 0x02,
+    LFG_OPTION_ENABLE_PREMADE_GROUP              = 0x04,
 };
 
 enum LFGMgrEnum
@@ -297,11 +298,12 @@ struct LFGDungeonData
 
     uint32 id;
     std::string name;
-    uint32 map;
+    int16 map;
     uint8 type;
     uint8 expansion;
     uint8 group;
-    uint32 contentTuningId;
+    uint8 minLevel;
+    uint8 maxLevel;
     Difficulty difficulty;
     bool seasonal;
     float x, y, z, o;
@@ -407,7 +409,7 @@ class TC_GAME_API LFGMgr
         /// Gets the random dungeon reward corresponding to given dungeon and player level
         LfgReward const* GetRandomDungeonReward(uint32 dungeon, uint8 level);
         /// Returns all random and seasonal dungeons for given level and expansion
-        LfgDungeonSet GetRandomAndSeasonalDungeons(uint8 level, uint8 expansion, uint32 contentTuningReplacementConditionMask);
+        LfgDungeonSet GetRandomAndSeasonalDungeons(uint8 level, uint8 expansion);
         /// Teleport a player to/from selected dungeon
         void TeleportPlayer(Player* player, bool out, bool fromOpcode = false);
         /// Inits new proposal to boot a player
@@ -502,6 +504,11 @@ class TC_GAME_API LFGMgr
         LfgGroupDataContainer GroupsStore;                 /// Group data
 };
 
+inline int32 format_as(LFGMgrEnum e) { return e; }
+inline int32 format_as(LfgProposalState e) { return e; }
+inline uint8 format_as(LfgTeleportResult e) { return e; }
+inline int32 format_as(LfgJoinResult e) { return e; }
+inline int32 format_as(LfgRoleCheckState e) { return e; }
 } // namespace lfg
 
 #define sLFGMgr lfg::LFGMgr::instance()

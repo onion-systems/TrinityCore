@@ -36,6 +36,7 @@
 #include "SharedDefines.h"
 #include <boost/circular_buffer_fwd.hpp>
 #include <array>
+#include <atomic>
 #include <map>
 #include <memory>
 #include <unordered_map>
@@ -103,12 +104,6 @@ namespace WorldPackets
         class GuildGetAchievementMembers;
     }
 
-    namespace AdventureJournal
-    {
-        class AdventureJournalOpenQuest;
-        class AdventureJournalUpdateSuggestions;
-    }
-
     namespace AdventureMap
     {
         class CheckIsAdventureMapPoiValid;
@@ -118,13 +113,6 @@ namespace WorldPackets
     namespace AreaTrigger
     {
         class AreaTrigger;
-    }
-
-    namespace Artifact
-    {
-        class ArtifactAddPower;
-        class ArtifactSetAppearance;
-        class ConfirmArtifactRespec;
     }
 
     namespace AuctionHouse
@@ -333,15 +321,6 @@ namespace WorldPackets
         class GameObjUse;
     }
 
-    namespace Garrison
-    {
-        class GetGarrisonInfo;
-        class GarrisonPurchaseBuilding;
-        class GarrisonCancelConstruction;
-        class GarrisonRequestBlueprintAndSpecializationData;
-        class GarrisonGetMapData;
-    }
-
     namespace Guild
     {
         class QueryGuildInfo;
@@ -442,6 +421,7 @@ namespace WorldPackets
         class SortBankBags;
         class SortReagentBankBags;
         struct ItemInstance;
+        class ReforgeItem;
         class RemoveNewItem;
     }
 
@@ -455,6 +435,8 @@ namespace WorldPackets
         class DFTeleport;
         class DFGetSystemInfo;
         class DFGetJoinStatus;
+        class LFGListGetStatus;
+        class LFGRequestLFGListBlacklist;
     }
 
     namespace Loot
@@ -729,7 +711,7 @@ namespace WorldPackets
     namespace Talent
     {
         class LearnTalents;
-        class LearnPvpTalents;
+        class LearnPreviewTalents;
         class ConfirmRespecWipe;
     }
 
@@ -1121,7 +1103,6 @@ class TC_GAME_API WorldSession
         //Taxi
         void SendTaxiStatus(ObjectGuid guid);
         void SendTaxiMenu(Creature* unit);
-        void SendDoFlight(uint32 mountDisplayId, uint32 path, uint32 pathNode = 0);
         bool SendLearnNewTaxiNode(Creature* unit);
         void SendDiscoverNewTaxiNode(uint32 nodeid);
 
@@ -1511,8 +1492,8 @@ class TC_GAME_API WorldSession
         void HandleMissileTrajectoryCollision(WorldPackets::Spells::MissileTrajectoryCollision& packet);
         void HandleUpdateMissileTrajectory(WorldPackets::Spells::UpdateMissileTrajectory& packet);
 
-        void HandleLearnPvpTalentsOpcode(WorldPackets::Talent::LearnPvpTalents& packet);
         void HandleLearnTalentsOpcode(WorldPackets::Talent::LearnTalents& packet);
+        void HandleLearnPreviewTalentsOpcode(WorldPackets::Talent::LearnPreviewTalents& packet);
         void HandleConfirmRespecWipeOpcode(WorldPackets::Talent::ConfirmRespecWipe& confirmRespecWipe);
         void HandleUnlearnSkillOpcode(WorldPackets::Spells::UnlearnSkill& packet);
         void HandleTradeSkillSetFavorite(WorldPackets::Spells::TradeSkillSetFavorite const& tradeSkillSetFavorite);
@@ -1639,6 +1620,8 @@ class TC_GAME_API WorldSession
         void HandleLfgTeleportOpcode(WorldPackets::LFG::DFTeleport& dfTeleport);
         void HandleDFGetSystemInfo(WorldPackets::LFG::DFGetSystemInfo& dfGetSystemInfo);
         void HandleDFGetJoinStatus(WorldPackets::LFG::DFGetJoinStatus& dfGetJoinStatus);
+        void HandleLfgListGetStatus(WorldPackets::LFG::LFGListGetStatus& lfgListGetStatus);
+        void HandleLfgRequestLFGListBlacklist(WorldPackets::LFG::LFGRequestLFGListBlacklist& lfgListGetStatus);
 
         void SendLfgUpdateStatus(lfg::LfgUpdateData const& updateData, bool party);
         void SendLfgRoleChosen(ObjectGuid guid, uint8 roles);
@@ -1661,6 +1644,7 @@ class TC_GAME_API WorldSession
         void HandleSortBankBags(WorldPackets::Item::SortBankBags& sortBankBags);
         void HandleSortReagentBankBags(WorldPackets::Item::SortReagentBankBags& sortReagentBankBags);
         void HandleRemoveNewItem(WorldPackets::Item::RemoveNewItem& removeNewItem);
+        void HandleReforgeItem(WorldPackets::Item::ReforgeItem& reforgeItem);
 
         void HandleCancelTempEnchantmentOpcode(WorldPackets::Item::CancelTempEnchantment& cancelTempEnchantment);
 
@@ -1747,10 +1731,6 @@ class TC_GAME_API WorldSession
         void HandleKeyboundOverride(WorldPackets::Spells::KeyboundOverride& keyboundOverride);
         void HandleQueryCountdownTimer(WorldPackets::Misc::QueryCountdownTimer& queryCountdownTimer);
 
-        // Adventure Journal
-        void HandleAdventureJournalOpenQuest(WorldPackets::AdventureJournal::AdventureJournalOpenQuest& openQuest);
-        void HandleAdventureJournalUpdateSuggestions(WorldPackets::AdventureJournal::AdventureJournalUpdateSuggestions& updateSuggestions);
-
         // Adventure Map
         void HandleCheckIsAdventureMapPoiValid(WorldPackets::AdventureMap::CheckIsAdventureMapPoiValid& CheckIsAdventureMapPoiValid);
         void HandleAdventureMapStartQuest(WorldPackets::AdventureMap::AdventureMapStartQuest& startQuest);
@@ -1774,13 +1754,6 @@ class TC_GAME_API WorldSession
         // Compact Unit Frames (4.x)
         void HandleSaveCUFProfiles(WorldPackets::Misc::SaveCUFProfiles& packet);
         void SendLoadCUFProfiles();
-
-        // Garrison
-        void HandleGetGarrisonInfo(WorldPackets::Garrison::GetGarrisonInfo& getGarrisonInfo);
-        void HandleGarrisonPurchaseBuilding(WorldPackets::Garrison::GarrisonPurchaseBuilding& garrisonPurchaseBuilding);
-        void HandleGarrisonCancelConstruction(WorldPackets::Garrison::GarrisonCancelConstruction& garrisonCancelConstruction);
-        void HandleGarrisonRequestBlueprintAndSpecializationData(WorldPackets::Garrison::GarrisonRequestBlueprintAndSpecializationData& garrisonRequestBlueprintAndSpecializationData);
-        void HandleGarrisonGetMapData(WorldPackets::Garrison::GarrisonGetMapData& garrisonGetMapData);
 
         // Battle Pets
         void HandleBattlePetRequestJournal(WorldPackets::BattlePet::BattlePetRequestJournal& battlePetRequestJournal);
@@ -1813,11 +1786,6 @@ class TC_GAME_API WorldSession
         std::unordered_map<uint32, uint8> const& GetRealmCharacterCounts() const { return _realmCharacterCounts; }
 
         void HandleQueryRealmName(WorldPackets::Query::QueryRealmName& queryRealmName);
-
-        // Artifact
-        void HandleArtifactAddPower(WorldPackets::Artifact::ArtifactAddPower& artifactAddPower);
-        void HandleArtifactSetAppearance(WorldPackets::Artifact::ArtifactSetAppearance& artifactSetAppearance);
-        void HandleConfirmArtifactRespec(WorldPackets::Artifact::ConfirmArtifactRespec& confirmArtifactRespec);
 
         // Scenario
         void HandleQueryScenarioPOI(WorldPackets::Scenario::QueryScenarioPOI& queryScenarioPOI);

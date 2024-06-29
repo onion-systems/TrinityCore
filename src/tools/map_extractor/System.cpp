@@ -30,14 +30,15 @@
 #include "adt.h"
 #include "wdt.h"
 #include <CascLib.h>
-#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/directory.hpp>
 #include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/path.hpp>
 #include <bitset>
-#include <cstdio>
 #include <deque>
 #include <fstream>
 #include <set>
 #include <unordered_map>
+#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #if TRINITY_PLATFORM == TRINITY_PLATFORM_WINDOWS
@@ -1395,7 +1396,7 @@ bool OpenCascStorage(int locale)
 
         return true;
     }
-    catch (boost::filesystem::filesystem_error const& error)
+    catch (std::exception const& error)
     {
         printf("Error opening CASC storage: %s\n", error.what());
         return false;
@@ -1423,7 +1424,7 @@ uint32 GetInstalledLocalesMask()
 
         return storage->GetInstalledLocalesMask();
     }
-    catch (boost::filesystem::filesystem_error const& error)
+    catch (std::exception const& error)
     {
         printf("Unable to determine installed locales mask: %s\n", error.what());
     }
@@ -1445,9 +1446,10 @@ static bool RetardCheck()
             if (itr->path().extension() == ".MPQ")
             {
                 printf("MPQ files found in Data directory!\n");
-                printf("This tool works only with World of Warcraft: Battle for Azeroth\n");
+                printf("This tool works only with World of Warcraft: Cataclysm Classic (4.4.x, NOT 4.3.4.15595)\n");
                 printf("\n");
                 printf("To extract maps for Wrath of the Lich King, rebuild tools using 3.3.5 branch!\n");
+                printf("To extract maps for the current retail version, rebuild tools using master branch!\n");
                 printf("\n");
                 printf("Press ENTER to exit...\n");
                 getchar();

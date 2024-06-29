@@ -29,7 +29,7 @@
 
 void WorldSession::HandleLfgJoinOpcode(WorldPackets::LFG::DFJoin& dfJoin)
 {
-    if (!sLFGMgr->isOptionEnabled(lfg::LFG_OPTION_ENABLE_DUNGEON_FINDER | lfg::LFG_OPTION_ENABLE_RAID_BROWSER) ||
+    if (!sLFGMgr->isOptionEnabled(lfg::LFG_OPTION_ENABLE_DUNGEON_FINDER | lfg::LFG_OPTION_ENABLE_RAID_FINDER) ||
         (GetPlayer()->GetGroup() && GetPlayer()->GetGroup()->GetLeaderGUID() != GetPlayer()->GetGUID() &&
         (GetPlayer()->GetGroup()->GetMembersCount() == MAX_GROUP_SIZE || !GetPlayer()->GetGroup()->isLFGGroup())))
         return;
@@ -137,14 +137,21 @@ void WorldSession::HandleDFGetJoinStatus(WorldPackets::LFG::DFGetJoinStatus& /*d
     }
 }
 
+void WorldSession::HandleLfgListGetStatus(WorldPackets::LFG::LFGListGetStatus& /*lfgListGetStatus*/)
+{
+}
+
+void WorldSession::HandleLfgRequestLFGListBlacklist(WorldPackets::LFG::LFGRequestLFGListBlacklist& /*lfgListGetStatus*/)
+{
+}
+
 void WorldSession::SendLfgPlayerLockInfo()
 {
     TC_LOG_DEBUG("lfg", "SMSG_LFG_PLAYER_INFO {}", GetPlayerInfo());
 
     // Get Random dungeons that can be done at a certain level and expansion
     uint8 level = GetPlayer()->GetLevel();
-    uint32 contentTuningReplacementConditionMask = 0 /*GetPlayer()->m_playerData->CtrOptions->ContentTuningConditionMask*/;
-    lfg::LfgDungeonSet const& randomDungeons = sLFGMgr->GetRandomAndSeasonalDungeons(level, GetExpansion(), contentTuningReplacementConditionMask);
+    lfg::LfgDungeonSet const& randomDungeons = sLFGMgr->GetRandomAndSeasonalDungeons(level, GetExpansion());
 
     WorldPackets::LFG::LfgPlayerInfo lfgPlayerInfo;
 

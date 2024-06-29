@@ -97,6 +97,8 @@ namespace WorldPackets
             int32 QuestID       = 0;
             int32 ContentTuningID = 0;
             int32 QuestType     = 0;
+            int32 QuestLevel    = 0;
+            int32 QuestMaxScalingLevel = 0;
             bool Repeatable     = false;
             bool Important      = false;
             std::string QuestTitle;
@@ -186,13 +188,14 @@ namespace WorldPackets
 
         struct TrainerListSpell
         {
-            int32 SpellID       = 0;
-            uint32 MoneyCost    = 0;
-            uint32 ReqSkillLine = 0;
-            uint32 ReqSkillRank = 0;
+            int32 SpellID           = 0;
+            uint32 MoneyCost        = 0;
+            uint32 ReqSkillLine     = 0;
+            uint32 ReqSkillRank     = 0;
             std::array<int32, 3> ReqAbility = { };
-            uint8 Usable        = 0;
-            uint8 ReqLevel      = 0;
+            uint32 Unk440           = 0;
+            uint8 Usable            = 0;
+            uint8 ReqLevel          = 0;
         };
 
         class TrainerList final : public ServerPacket

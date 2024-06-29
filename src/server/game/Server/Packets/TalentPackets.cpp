@@ -17,38 +17,45 @@
 
 #include "TalentPackets.h"
 
-ByteBuffer& operator>>(ByteBuffer& data, WorldPackets::Talent::PvPTalent& pvpTalent)
+ByteBuffer& operator<<(ByteBuffer& data, WorldPackets::Talent::TalentInfo const& talent)
 {
-    data >> pvpTalent.PvPTalentID;
-    data >> pvpTalent.Slot;
+    data << uint32(talent.TalentID);
+    data << uint32(talent.Rank);
     return data;
 }
 
-ByteBuffer& operator<<(ByteBuffer& data, WorldPackets::Talent::PvPTalent const& pvpTalent)
+ByteBuffer& operator>>(ByteBuffer& data, WorldPackets::Talent::TalentInfo& talent)
 {
-    data << uint16(pvpTalent.PvPTalentID);
-    data << uint8(pvpTalent.Slot);
+    data >> talent.TalentID;
+    data >> talent.Rank;
     return data;
 }
 
 WorldPacket const* WorldPackets::Talent::UpdateTalentData::Write()
 {
+    _worldPacket << uint32(Info.UnspentTalentPoints);
     _worldPacket << uint8(Info.ActiveGroup);
-    _worldPacket << uint32(Info.PrimarySpecialization);
     _worldPacket << uint32(Info.TalentGroups.size());
 
     for (auto& talentGroupInfo : Info.TalentGroups)
     {
-        _worldPacket << uint32(talentGroupInfo.SpecID);
-        _worldPacket << uint32(talentGroupInfo.TalentIDs.size());
-        _worldPacket << uint32(talentGroupInfo.PvPTalents.size());
+        _worldPacket << uint8(talentGroupInfo.Talents.size());
+        _worldPacket << uint32(talentGroupInfo.Talents.size());
 
-        for (uint16 talent : talentGroupInfo.TalentIDs)
-            _worldPacket << uint16(talent);
+        _worldPacket << uint8(talentGroupInfo.Glyphs.size());
+        _worldPacket << uint32(talentGroupInfo.Glyphs.size());
 
-        for (PvPTalent talent : talentGroupInfo.PvPTalents)
+        _worldPacket << uint8(talentGroupInfo.SpecID);
+        _worldPacket << uint32(talentGroupInfo.PrimarySpecialization);
+
+        for (TalentInfo const& talent : talentGroupInfo.Talents)
             _worldPacket << talent;
+
+        for (uint16 glyph : talentGroupInfo.Glyphs)
+            _worldPacket << glyph;
     }
+
+    _worldPacket.WriteBit(Info.IsPetTalents);
 
     return &_worldPacket;
 }
@@ -104,20 +111,11 @@ WorldPacket const* WorldPackets::Talent::ActiveGlyphs::Write()
     return &_worldPacket;
 }
 
-void WorldPackets::Talent::LearnPvpTalents::Read()
+void WorldPackets::Talent::LearnPreviewTalents::Read()
 {
     Talents.resize(_worldPacket.read<uint32>());
-    for (uint32 i = 0; i < Talents.size(); ++i)
-        _worldPacket >> Talents[i];
-}
+    _worldPacket >> TalentTab;
 
-WorldPacket const* WorldPackets::Talent::LearnPvpTalentFailed::Write()
-{
-    _worldPacket.WriteBits(Reason, 4);
-    _worldPacket << int32(SpellID);
-    _worldPacket << uint32(Talents.size());
-    for (PvPTalent pvpTalent : Talents)
-        _worldPacket << pvpTalent;
-
-    return &_worldPacket;
+    for (TalentInfo& talent : Talents)
+        _worldPacket >> talent;
 }

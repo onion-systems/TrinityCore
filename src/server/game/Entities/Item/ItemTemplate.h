@@ -25,7 +25,7 @@
 #include <bitset>
 #include <vector>
 
-enum ItemModType
+enum ItemModType : uint8
 {
     ITEM_MOD_MANA                     = 0,
     ITEM_MOD_HEALTH                   = 1,
@@ -415,6 +415,20 @@ enum InventoryType : uint8
 
 #define MAX_INVTYPE                               35
 
+constexpr std::array<InventoryType, 10> InventoryTypesEquipable =
+{
+    INVTYPE_WEAPON,
+    INVTYPE_SHIELD,
+    INVTYPE_RANGED,
+    INVTYPE_2HWEAPON,
+    INVTYPE_WEAPONMAINHAND,
+    INVTYPE_WEAPONOFFHAND,
+    INVTYPE_HOLDABLE,
+    INVTYPE_THROWN,
+    INVTYPE_RANGEDRIGHT,
+    INVTYPE_PROFESSION_TOOL
+};
+
 enum ItemClass : uint8
 {
     ITEM_CLASS_CONSUMABLE                       = 0,
@@ -502,7 +516,7 @@ enum ItemSubclassWeapon
 
 #define ITEM_SUBCLASS_MASK_WEAPON_RANGED (\
     (1 << ITEM_SUBCLASS_WEAPON_BOW) | (1 << ITEM_SUBCLASS_WEAPON_GUN) |\
-    (1 << ITEM_SUBCLASS_WEAPON_CROSSBOW))
+    (1 << ITEM_SUBCLASS_WEAPON_CROSSBOW) | (1 << ITEM_SUBCLASS_WEAPON_THROWN))
 
 #define MAX_ITEM_SUBCLASS_WEAPON                  21
 
@@ -765,6 +779,27 @@ enum ItemLevelConstants : uint32
     MAX_ITEM_LEVEL = 1300
 };
 
+enum ItemIdConstants
+{
+    ITEM_HEARTHSTONE                             = 6948,    // Hearthstone
+    ITEM_GARRISON_HEARTHSTONE                    = 110560,  // Garrison Hearthstone
+    ITEM_DALARAN_HEARTHSTONE                     = 140192,  // Dalaran Hearthstone
+    ITEM_FLIGHT_MASTER_WHISTLE                   = 141605,  // Flight Master Whistle
+
+    ITEM_RED_RIBBONED_WRAPPING_PAPER             = 5042,    // Red Ribboned Wrapping Paper
+    ITEM_RED_RIBBONED_GIFT                       = 5043,    // Red Ribboned Gift
+    ITEM_BLUE_RIBBONED_WRAPPING_PAPER            = 5048,    // Blue Ribboned Wrapping Paper
+    ITEM_BLUE_RIBBONED_GIFT                      = 5044,    // Blue Ribboned Gift
+    ITEM_BLUE_RIBBONED_HOLIDAY_WRAPPING_PAPER    = 17303,   // Blue Ribboned Wrapping Paper
+    ITEM_BLUE_RIBBONED_HOLIDAY_GIFT              = 17302,   // Blue Ribboned Holiday Gift
+    ITEM_GREEN_RIBBONED_WRAPPING_PAPER           = 17304,   // Green Ribboned Wrapping Paper
+    ITEM_GREEN_RIBBONED_HOLIDAY_GIFT             = 17305,   // Green Ribboned Holiday Gift
+    ITEM_PURPLE_RIBBONED_WRAPPING_PAPER          = 17307,   // Purple Ribboned Wrapping Paper
+    ITEM_PURPLE_RIBBONED_HOLIDAY_GIFT            = 17308,   // Purple Ribboned Holiday Gift
+    ITEM_EMPTY_WRAPPER                           = 21830,   // Empty Wrapper
+    ITEM_WRAPPED_GIFT                            = 21831,   // Wrappered Gift
+};
+
 class Player;
 struct ChrSpecializationEntry;
 
@@ -795,9 +830,11 @@ struct TC_GAME_API ItemTemplate
     uint32 GetRequiredReputationRank() const { return ExtendedData->MinReputation; }
     uint32 GetMaxCount() const { return ExtendedData->MaxCount; }
     uint32 GetContainerSlots() const { return ExtendedData->ContainerSlots; }
+    int32 GetStatModifierBonusAmount(uint32 index) const { ASSERT(index < MAX_ITEM_PROTO_STATS); return ExtendedData->StatModifierBonusAmount[index]; }
     int32 GetStatModifierBonusStat(uint32 index) const { ASSERT(index < MAX_ITEM_PROTO_STATS); return ExtendedData->StatModifierBonusStat[index]; }
     int32 GetStatPercentEditor(uint32 index) const { ASSERT(index < MAX_ITEM_PROTO_STATS); return ExtendedData->StatPercentEditor[index]; }
     float GetStatPercentageOfSocket(uint32 index) const { ASSERT(index < MAX_ITEM_PROTO_STATS); return ExtendedData->StatPercentageOfSocket[index]; }
+    uint16 GetScalingStatDistributionID() const { return ExtendedData->ScalingStatDistributionID; }
     uint32 GetScalingStatContentTuning() const { return ExtendedData->ContentTuningID; }
     uint32 GetPlayerLevelToItemLevelCurveId() const { return ExtendedData->PlayerLevelToItemLevelCurveID; }
     uint32 GetDamageType() const { return ExtendedData->DamageDamageType; }
@@ -823,6 +860,8 @@ struct TC_GAME_API ItemTemplate
     float  GetDmgVariance() const { return ExtendedData->DmgVariance; }
     uint8 GetArtifactID() const { return ExtendedData->ArtifactID; }
     uint8 GetRequiredExpansion() const { return ExtendedData->ExpansionID; }
+    uint16 GetRandomSelect() const { return ExtendedData->RandomSelect; }
+    uint16 GetItemRandomSuffixGroupID() const { return ExtendedData->ItemRandomSuffixGroupID; }
 
     uint32 MaxDurability;
     std::vector<ItemEffectEntry const*> Effects;
