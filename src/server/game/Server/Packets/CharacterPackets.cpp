@@ -240,6 +240,7 @@ ByteBuffer& operator<<(ByteBuffer& data, EnumCharactersResult::CharacterInfo con
     data << uint32(charInfo.MailSenderTypes.size());
     data << uint32(charInfo.OverrideSelectScreenFileDataID);
     data << charInfo.PersonalTabard;
+    data << int32(charInfo.TimerunningSeasonID);
 
     for (ChrCustomizationChoice const& customization : charInfo.Customizations)
         data << customization;
@@ -275,6 +276,7 @@ ByteBuffer& operator<<(ByteBuffer& data, EnumCharactersResult::RaceUnlock const&
     data.WriteBit(raceUnlock.HasAchievement);
     data.WriteBit(raceUnlock.HasHeritageArmor);
     data.WriteBit(raceUnlock.IsLocked);
+    data.WriteBit(raceUnlock.Unused1027);
     data.FlushBits();
 
     return data;
@@ -358,6 +360,7 @@ void CreateCharacter::Read()
     _worldPacket >> CreateInfo->Class;
     _worldPacket >> CreateInfo->Sex;
     CreateInfo->Customizations.resize(_worldPacket.read<uint32>());
+    _worldPacket >> CreateInfo->TimerunningSeasonID;
     CreateInfo->Name = _worldPacket.ReadString(nameLength);
     if (hasTemplateSet)
         CreateInfo->TemplateSet = _worldPacket.read<int32>();

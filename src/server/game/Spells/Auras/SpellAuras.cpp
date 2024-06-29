@@ -883,8 +883,14 @@ int32 Aura::CalcMaxDuration(Unit* caster) const
         maxDuration = -1;
 
     // IsPermanent() checks max duration (which we are supposed to calculate here)
-    if (maxDuration != -1 && modOwner)
-        modOwner->ApplySpellMod(spellInfo, SpellModOp::Duration, maxDuration);
+    if (maxDuration != -1)
+    {
+        if (modOwner)
+            modOwner->ApplySpellMod(spellInfo, SpellModOp::Duration, maxDuration);
+
+        if (spellInfo->IsEmpowerSpell())
+            maxDuration += SPELL_EMPOWER_HOLD_TIME_AT_MAX;
+    }
 
     return maxDuration;
 }
@@ -2522,6 +2528,13 @@ void UnitAura::FillTargetMap(std::unordered_map<Unit*, uint32>& targets, Unit* c
             targets.emplace(target, targetPair.second);
     }
 
+    // skip area update if owner is not in world!
+    if (!GetUnitOwner()->IsInWorld())
+        return;
+
+    if (GetUnitOwner()->HasAuraState(AURA_STATE_BANISHED, GetSpellInfo(), caster))
+        return;
+
     for (SpellEffectInfo const& spellEffectInfo : GetSpellInfo()->GetEffects())
     {
         if (!HasEffect(spellEffectInfo.EffectIndex))
@@ -2529,13 +2542,6 @@ void UnitAura::FillTargetMap(std::unordered_map<Unit*, uint32>& targets, Unit* c
 
         // area auras only
         if (spellEffectInfo.IsEffect(SPELL_EFFECT_APPLY_AURA))
-            continue;
-
-        // skip area update if owner is not in world!
-        if (!GetUnitOwner()->IsInWorld())
-            continue;
-
-        if (GetUnitOwner()->HasUnitState(UNIT_STATE_ISOLATED))
             continue;
 
         std::vector<WorldObject*> units;
